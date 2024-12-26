@@ -28,6 +28,7 @@ class AuthController {
   private timeSlotService: ITimeSlotService;
   stripe: Stripe;
   constructor(
+   
     userService: IUserService,
     docService: IDoctorService,
     timeSlotService: ITimeSlotService
