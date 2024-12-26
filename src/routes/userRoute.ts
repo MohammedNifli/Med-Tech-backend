@@ -8,6 +8,8 @@ import DocRepo from '../repositories/doctorRepo.js';
 import {authentication} from '../middlewares/authMiddleware.js'
 import TimeSlotService from '../services/timeSlotService.js';
 import TimeSlotRepo from '../repositories/timeSlotRepo.js';
+import dotenv from 'dotenv'
+dotenv.config();
 
 import {checkRole} from '../middlewares/authMiddleware.js'
 import { Roles } from '../config/rolesConfig.js';
