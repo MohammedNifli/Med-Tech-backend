@@ -17,6 +17,10 @@ import { HttpStatusCode } from "../enums/httpStatusCodes.js";
 import { IUserService } from "../Interfaces/user/IUserService.js";
 import { IDoctorService } from "../Interfaces/doctor/IDoctorService.js";
 import { ITimeSlotService } from "../Interfaces/timeSlot/ITimeSlotService.js";
+import dotenv from "dotenv";
+
+dotenv.config();
+
 
 class AuthController {
   private userService: IUserService;
