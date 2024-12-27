@@ -49,7 +49,7 @@ const corsOptions = {
   origin: "https://med-tech-connect.vercel.app", // Allow specific origin
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], // Include OPTIONS
   allowedHeaders: ["Content-Type", "Authorization"], // Allow necessary headers
-  
+  credentials: true, // Allow cookies and credentials
 };
 // Use CORS middleware
 app.use(cors(corsOptions));
