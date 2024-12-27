@@ -46,7 +46,7 @@ class TimeSlotService implements ITimeSlotService {
     consultationMode: string;
   }): Promise<ITimeSlotDetails[]> {
     return new Promise((resolve, reject) => {
-      const workerPath = "./dist/workers/slotWorker.js"; // Path to the worker script
+      const workerPath = "/workers/slotWorker.js"; // Path to the worker script
   
       const worker = new Worker(workerPath, {
         workerData: { startDate, endDate, timeSlots, doctorId, availableDays, consultationMode }, // Pass consultaionMode to the worker
