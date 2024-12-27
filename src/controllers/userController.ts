@@ -79,21 +79,21 @@ class AuthController {
 
       //access
       res.cookie("accessToken", accessToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "strict",
-        maxAge: 1 * 60 * 1000,
-        path: "/",
+        httpOnly: true, // Prevents client-side JavaScript access
+        secure: process.env.NODE_ENV === "production", // Enables HTTPS for production
+        sameSite: "none", // Allows cross-origin requests
+        maxAge: 1 * 60 * 1000, // 1 minute
+        path: "/", // Available for all routes
       });
-
-      //refresh
+      
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: false,
-        sameSite: "strict",
-        maxAge: 1 * 24 * 60 * 60 * 1000,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "none",
+        maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
         path: "/",
       });
+      
 
       console.log("cooookie set:", req.cookies);
 
