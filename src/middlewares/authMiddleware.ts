@@ -10,8 +10,8 @@ interface AuthenticatedRequest extends Request {
 
 export const authentication = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.cookies?.accessToken;
-    const refreshToken = req.cookies?.refreshToken;
+    const token = req.cookies?.accessToken || req.headers['authorization']?.split(' ')[1];  // Extract token from Authorization header if available
+    const refreshToken = req.cookies?.refreshToken || req.headers['x-refresh-token'];  // Extract refresh token from header if available
     console.log('accesToken',token);
     console.log('refreshToken',refreshToken)
    

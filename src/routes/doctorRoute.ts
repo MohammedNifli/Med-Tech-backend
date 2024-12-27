@@ -35,7 +35,7 @@ docRoute.post('/login', docController.doctorLogin.bind(docController));
 docRoute.use(authentication);  // Apply authentication middleware to all routes below
 
 // Doctor Profile routes
-docRoute.get('/profile', checkRole([Roles.DOCTOR,Roles.ADMIN]), checkBlocked, docController.getProfile.bind(docController));
+docRoute.get('/profile', checkBlocked, docController.getProfile.bind(docController));
 docRoute.put('/profile', checkRole([Roles.DOCTOR]), checkBlocked, docController.editProfile.bind(docController));
 
 // Doctor Approval - File Uploads (use the `upload` middleware)
