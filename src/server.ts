@@ -54,6 +54,7 @@ const corsOptions = {
 
 // Use CORS middleware
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); 
 
 // Middleware for parsing JSON and URL-encoded data
 app.use("/appointment/webhook", express.raw({ type: "application/json" }));
