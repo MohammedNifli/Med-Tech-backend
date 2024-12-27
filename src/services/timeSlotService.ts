@@ -47,13 +47,17 @@ class TimeSlotService implements ITimeSlotService {
   }): Promise<ITimeSlotDetails[]> {
     return new Promise((resolve, reject) => {
       // Dynamically resolve the worker script path
-      const workerPath = path.resolve(__dirname, "workers", "slotWorker.js"); // Adjust relative to your build output
+      const isProduction = process.env.NODE_ENV === 'production';  // Check if in production
+      const workerPath = isProduction
+        ? path.resolve(__dirname, '..', 'workers', 'slotWorker.js')  // For production, adjust the path to the dist folder
+        : path.resolve(__dirname, 'workers', 'slotWorker.js');  // For development, use the src folder
   
+      // Create the worker
       const worker = new Worker(workerPath, {
-        workerData: { startDate, endDate, timeSlots, doctorId, availableDays, consultationMode }, // Pass consultationMode to the worker
+        workerData: { startDate, endDate, timeSlots, doctorId, availableDays, consultationMode },
       });
   
-      worker.on("message", async (slots: ITimeSlotDetails[]) => {
+      worker.on('message', async (slots: ITimeSlotDetails[]) => {
         try {
           await this.timeSlotRepo.batchInsertTimeSlots(doctorId, slots);
           resolve(slots); // Return the inserted slots
@@ -62,9 +66,9 @@ class TimeSlotService implements ITimeSlotService {
         }
       });
   
-      worker.on("error", reject);
+      worker.on('error', reject);
   
-      worker.on("exit", (code) => {
+      worker.on('exit', (code) => {
         if (code !== 0) {
           reject(new Error(`Worker stopped with exit code ${code}`));
         }
