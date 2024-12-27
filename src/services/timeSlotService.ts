@@ -46,10 +46,11 @@ class TimeSlotService implements ITimeSlotService {
     consultationMode: string;
   }): Promise<ITimeSlotDetails[]> {
     return new Promise((resolve, reject) => {
-      const workerPath = "/workers/slotWorker.js"; // Path to the worker script
+      // Dynamically resolve the worker script path
+      const workerPath = path.resolve(__dirname, "workers", "slotWorker.js"); // Adjust relative to your build output
   
       const worker = new Worker(workerPath, {
-        workerData: { startDate, endDate, timeSlots, doctorId, availableDays, consultationMode }, // Pass consultaionMode to the worker
+        workerData: { startDate, endDate, timeSlots, doctorId, availableDays, consultationMode }, // Pass consultationMode to the worker
       });
   
       worker.on("message", async (slots: ITimeSlotDetails[]) => {
@@ -70,7 +71,6 @@ class TimeSlotService implements ITimeSlotService {
       });
     });
   }
-  
   
 
   public async fetchDoctorSlotsService(doctorId: string): Promise<any[]> {
