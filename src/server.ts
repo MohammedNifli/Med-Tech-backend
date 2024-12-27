@@ -46,7 +46,7 @@ app.use(cookieParser());
 
 // CORS options for allowing cookies and specifying allowed origins
 const corsOptions = {
-  origin: "https://med-tech-connect.vercel.app", // Allow specific origin
+  origin: "*", // Allow specific origin
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], // Include OPTIONS
   allowedHeaders: ["Content-Type", "Authorization"], // Allow necessary headers
   credentials: true, // Allow cookies and credentials
