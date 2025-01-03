@@ -1,69 +1,63 @@
 import { Request, Response } from "express";
-import docService from "../services/doctorService.js";
-import otpService from "../services/otpService.js";
 import mergeDoctorData from "../utils/mergeDoctorData.js";
-import { access } from "fs";
+
 import { HttpStatusCode } from "../enums/httpStatusCodes.js";
 
 import { IDoctorService } from "../Interfaces/doctor/IDoctorService.js";
 import { generatePresignedURL } from "../utils/s3UploadPhoto.js";
+import { IDoctorController } from "../Interfaces/doctor/IDoctorController.js";
 
-class DoctorController {
+class DoctorController implements IDoctorController {
   private docService: IDoctorService;
   constructor(docService: IDoctorService) {
     this.docService = docService;
   }
 
-  public async doctorRegister(req: Request, res: Response) {
+  public async doctorRegister(req: Request, res: Response):Promise<Response> {
     const { name, email, password, phoneNumber } = req.body;
-    console.log(name, email, password, phoneNumber);
-
-    const startTime = Date.now(); // Start time log
-
+  
+    if (!name || !email || !password || !phoneNumber) {
+      return res
+        .status(HttpStatusCode.BAD_REQUEST)
+        .json({ error: true, message: "All fields are required: name, email, password, and phone number." });
+    }
+  
+    const startTime = Date.now();
+  
     try {
-      // Measure time taken for registration
       const regStart = Date.now();
-      const doctor = await this.docService.register(
-        name,
-        email,
-        password,
-        phoneNumber
-      );
-      console.log(`Registration took: ${Date.now() - regStart}ms`);
-
-      // Measure time taken for OTP sending
-      const otpStart = Date.now();
-
-      // console.log(`OTP sending took: ${Date.now() - otpStart}ms`);
-
-      const endTime = Date.now(); // End time log
-      console.log(
-        `Total time taken for doctorRegister: ${endTime - startTime}ms`
-      );
-
-      res
-        .status(HttpStatusCode.CREATED)
-        .json({ message: "Doctor successfully registered", doctor });
-    } catch (error: any) {
-      console.error("Error registering doctor:", error);
-
-      res.status(400).json({
+      const doctor = await this.docService.register(name, email, password, phoneNumber);
+  
+      const endTime = Date.now();
+  
+      return res.status(HttpStatusCode.CREATED).json({
+        message: "Doctor successfully registered",
+        doctor,
+      });
+    } catch (error: unknown) {
+      
+  
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
         error: true,
-        message: error.message || "An unexpected error occurred",
+        message: error instanceof Error ? error.message : "An unexpected error occurred",
       });
     }
   }
+  
 
   //Login
-  public async doctorLogin(req: Request, res: Response) {
+  public async doctorLogin(req: Request, res: Response):Promise<Response> {
     const { email, password } = req.body;
-    console.log(email, password);
+
+  if (!email || !password)  return res.status(HttpStatusCode.BAD_REQUEST).json({ message: "Email and password must be provided." });
+  
+
+
     try {
       const { doctor, accessToken, refreshToken } = await this.docService.login(
         email,
         password
       );
-      console.log(accessToken, "..............", refreshToken);
 
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
@@ -81,7 +75,7 @@ class DoctorController {
         path: "/",
       });
 
-      return res.status(201).json({
+      return res.status(HttpStatusCode.CREATED).json({
         message: "loggedIn successfully",
         id: doctor._id,
         accessToken,
@@ -94,20 +88,19 @@ class DoctorController {
       if (
         error.message === "Doctor is blocked. Please contact our support desk."
       ) {
-        return res.status(403).json({ message: error.message }); // 403 Forbidden if blocked
+        return res.status(403).json({ message: error.message });
       }
-      res.status(400).json({ message: "Login not successful" });
+     return  res.status(HttpStatusCode.BAD_REQUEST).json({ message: "Login not successful" });
     }
   }
 
   //Doctor logout
 
-  public async doctorLogout(req: Request, res: Response): Promise<any> {
+  public async doctorLogout(req: Request, res: Response): Promise<Response> {
     try {
-      const accessToken = req.cookies.accessToken; // Corrected spelling
+      const accessToken = req.cookies.accessToken;
       const refreshToken = req.cookies.refreshToken;
 
-      // Tokens deleting from cookies
       if (accessToken) {
         res.cookie("accessToken", " ", {
           httpOnly: true,
@@ -118,7 +111,6 @@ class DoctorController {
 
       if (refreshToken) {
         res.cookie("refreshToken", " ", {
-          // Change 'accessToken' to 'refreshToken' here
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           expires: new Date(0),
@@ -136,71 +128,64 @@ class DoctorController {
     }
   }
 
-  // Docotor Get Profile
-  public async getProfile(req: Request, res: Response) {
+  
+  public async getProfile(req: Request, res: Response):Promise<Response> {
     const docId: string = (req.query.id as string) || "";
-    console.log("docId", docId);
-    console.log("Hello world");
 
     try {
-      // Get doctor profile from service
+      
       const doctorProfile = await this.docService.getDoctorProfile(docId);
 
       if (!doctorProfile) {
-        return res.status(404).json({ message: "Doctor not found." });
+        return res.status(HttpStatusCode.NOT_FOUND).json({ message: "Doctor not found." });
       }
 
-      return res.status(200).json({
+      return res.status(HttpStatusCode.OK).json({
         message: "Doctor profile retrieved successfully.",
         doctorProfile,
       });
     } catch (error) {
-      return res.status(500).json({
+      return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
         message: "Server error while retrieving the doctor profile.",
       });
     }
   }
 
   // Edit an existing profile
-  public async editProfile(req: Request, res: Response) {
+  public async editProfile(req: Request, res: Response):Promise<Response> {
     const docId: string = req.query.id as string;
     const updatedData = req.body;
 
-    // for testing purpose
-    // console.log("Hello world",updatedData)
-
     try {
       if (!docId) {
-        return res.status(400).json({ message: "Doctor Id is required" });
+        return res.status(HttpStatusCode.BAD_REQUEST).json({ message: "Doctor Id is required" });
       }
 
       if (!updatedData || Object.keys(updatedData).length === 0) {
-        return res.status(400).json({ message: "No update data provided" });
+        return res.status(HttpStatusCode.BAD_REQUEST).json({ message: "No update data provided" });
       }
       const existingDoctorProfile = await this.docService.getDoctorProfile(
         docId
       );
       if (!existingDoctorProfile) {
-        return res.status(400).json({ message: "Doctor is not found" });
+        return res.status(HttpStatusCode.BAD_REQUEST).json({ message: "Doctor is not found" });
       }
       const mergedData = mergeDoctorData(
         existingDoctorProfile.toObject(),
         updatedData
       );
-      console.log("mergedData", mergedData);
 
       const upadateDoctorProfile = await this.docService.updateDoctorProfile(
         docId,
         mergedData
       );
 
-      return res.status(200).json({
+      return res.status(HttpStatusCode.OK).json({
         message: "Doctor Profile Updated Succesfully",
         upadateDoctorProfile,
       });
     } catch (error: any) {
-      console.error(`Error updating doctor profile for ID ${docId}:`, error);
-      return res.status(500).json({
+      return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
         message: "Server error while updating doctor profile.",
         error: error.message,
       });
@@ -208,14 +193,10 @@ class DoctorController {
   }
 
   // Apply for Approval
-  // src/controllers/doctorController.ts
 
-  public async applyForApproval(req: Request, res: Response) {
+  public async applyForApproval(req: Request, res: Response):Promise<Response> {
     try {
       const docId = req.params.id;
-
-      console.log("Doctor ID:", docId);
-      console.log("Received data from client:", req.body);
 
       if (!docId) {
         return res.status(400).json({ message: "Doctor ID is required" });
@@ -224,35 +205,28 @@ class DoctorController {
       const approvalData = JSON.parse(req.body.data || "{}");
       const { licenses, certificates, profile } = req.body; // Extract licenses and certificates
 
-      console.log("Received licenses:", licenses);
-      console.log("Received certificates:", certificates);
-
-      // Validate licenses and certificates
       if (!licenses.length && !certificates.length) {
         return res
           .status(400)
           .json({ message: "At least one license or certificate is required" });
       }
 
-      // Fetch the existing doctor profile
       const doctorProfile = await this.docService.getDoctorProfile(docId);
 
       if (!doctorProfile) {
         return res.status(404).json({ message: "Doctor profile not found" });
       }
 
-      // Merge existing data with approval data
       const updatedData = mergeDoctorData(
         doctorProfile.toObject(),
         approvalData
       );
 
-      // Add license and certificate information
       updatedData.professionalInfo = updatedData.professionalInfo || {};
       updatedData.professionalInfo.licenseFile = licenses.map(
         (license: string) => ({
-          title: "License File", // Add metadata if required
-          file: license, // Assume license contains the S3 URL or file path
+          title: "License File",
+          file: license,
         })
       );
       updatedData.professionalInfo.certificates = certificates.map(
@@ -263,7 +237,6 @@ class DoctorController {
       );
       updatedData.personalInfo.profilePicture = profile;
 
-      // Apply the update for approval
       const approvalStatus = await this.docService.applyApproval(
         docId,
         updatedData
@@ -274,37 +247,38 @@ class DoctorController {
         .json({ message: "Successfully updated for approval", approvalStatus });
     } catch (error) {
       console.error("Error in applyForApproval:", error);
-      return res.status(500).json({ message: "Internal server error" });
+      return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
     }
   }
 
-  public async showingDoctorStatus(req: Request, res: Response) {
+  public async fetchDoctorStatus(req: Request, res: Response):Promise<Response> {
     try {
       const docId: string = req.params.id;
-      console.log(docId);
-
+  
       if (!docId) {
-        throw new Error("id is not getting");
+        return res.status(HttpStatusCode.NOT_FOUND).json({message:"doctor Id is missing"})
       }
-
-      const fetchDoctorStatus = await this.docService.showingDctorStatusService(
-        docId
-      );
-      return res
-        .status(HttpStatusCode.OK)
-        .json({ message: "status", fetchDoctorStatus });
-    } catch (error) {
-      console.log(error);
+  
+      const fetchDoctorStatus = await this.docService.fetchDctorStatus(docId);
+  
+      return res.status(HttpStatusCode.OK).json({
+        message: "Doctor status fetched successfully",
+        fetchDoctorStatus,
+      });
+    } catch (error:any) {
+      
+      return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+        message: "An error occurred while fetching the doctor status",
+        error: error.message,
+      });
     }
   }
+  
 
-  public async changePassword(req: Request, res: Response) {
+  public async changePassword(req: Request, res: Response):Promise<Response> {
     try {
-      console.log("doctor change password controller");
       const { docId, currentPassword, newPassword, confirmPassword } = req.body;
-      console.log("oooo", docId, currentPassword, newPassword, confirmPassword);
 
-      // Check if all necessary fields are provided
       if (!docId || !currentPassword || !newPassword || !confirmPassword) {
         return res.status(HttpStatusCode.BAD_REQUEST).json({
           message:
@@ -312,15 +286,13 @@ class DoctorController {
         });
       }
 
-      // Check if newPassword and confirmPassword match
       if (newPassword !== confirmPassword) {
         return res.status(HttpStatusCode.BAD_REQUEST).json({
           message: "New password and confirm password do not match",
         });
       }
 
-      // Call the service layer to handle password change
-      const result = await this.docService.changePasswordService(
+      const result = await this.docService.changePassword(
         docId,
         currentPassword,
         newPassword
@@ -337,54 +309,46 @@ class DoctorController {
       }
     } catch (error) {
       console.error(error);
-      res
+     return res
         .status(HttpStatusCode.INTERNAL_SERVER_ERROR)
         .json({ message: "Internal server error" });
     }
   }
 
-  public async doctorProfilePictureFixing(req: Request, res: Response) {
+  public async doctorProfilePictureFixing(req: Request, res: Response):Promise<Response> {
     try {
-      const { docId } = req.body; // Get doctor ID from the request body
-      const file = req.file; // Get the uploaded file
+      const { docId } = req.body;
+      const file = req.file;
 
-      // Validate the inputs
       if (!docId || !file) {
         return res
-          .status(400)
+          .status(HttpStatusCode.BAD_REQUEST)
           .json({ message: "Doctor ID and file are required." });
       }
 
-      // Call the service to upload the picture
       const uploadResponse = await this.docService.uploadProfilePicture(
         docId,
         file.path
-      ); // Use file.path for the upload
+      );
 
-      // Return success response
-      return res
-        .status(200)
-        .json({
-          message: "Profile picture updated successfully",
-          data: uploadResponse,
-        });
+      return res.status(HttpStatusCode.OK).json({
+        message: "Profile picture updated successfully",
+        data: uploadResponse,
+      });
     } catch (error: any) {
-      console.error(error);
-      return res
-        .status(500)
-        .json({
-          message: "Failed to upload profile picture",
-          error: error.message,
-        });
+      return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+        message: "Failed to upload profile picture",
+        error: error.message,
+      });
     }
   }
 
   public async s3PresignedUrlGeneration(
     req: Request,
     res: Response
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
-      const { files } = req.body; // Array of { fileName, fileType }
+      const { files } = req.body;
 
       const presignedUrls = await Promise.all(
         files.map((file: { fileName: string; fileType: string }) =>
@@ -392,34 +356,31 @@ class DoctorController {
         )
       );
 
-      console.log("Presigned URLs:", presignedUrls);
-      res.json({ presignedUrls }); // Return an array of presigned URLs
+      
+     return res.json({ presignedUrls });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error generating presigned URL" });
+    
+      return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({ message: "Error generating presigned URL" });
     }
   }
 
   public async s3PresignedUrlCreation(
     req: Request,
     res: Response
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       const { fileName, fileType } = req.body;
 
       const presignedUrl = await generatePresignedURL(fileName, fileType);
       console.log("presigned url in backend", presignedUrl);
-      res.json({ presignedUrl });
+     return res.json({ presignedUrl });
     } catch (error) {
-      console.log(error);
-      res
+      
+    return  res
         .status(HttpStatusCode.INTERNAL_SERVER_ERROR)
         .json({ message: "error in presigned url creation" });
     }
   }
-
-
-  
 }
 
 export default DoctorController;

@@ -40,7 +40,7 @@ class FinancialService implements IFinancialService{
 
     public async showAmountsService():Promise<any>{
         try{
-            const amounts=await this.financialRepo.showAmountsRepo();
+            const amounts=await this.financialRepo.showAmounts();
             return amounts;
 
         }catch(error:any){
@@ -51,8 +51,8 @@ class FinancialService implements IFinancialService{
     
     public async addAmount(userId: string, amount: number): Promise<any> {
         try {
-          // Call repository to add amount
-          const updatedRevenue = await this.financialRepo.addAmountToRepo(userId, amount);
+      
+          const updatedRevenue = await this.financialRepo.addAmount(userId, amount);
       
           if (!updatedRevenue) {
             throw new Error('Failed to update revenue');

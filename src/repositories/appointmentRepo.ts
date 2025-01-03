@@ -1,15 +1,9 @@
-import AppointmentModel, {
-  IAppointment,
-  IAppointmentData,
-} from "../models/appointmentModel.js";
+import AppointmentModel, { IAppointment } from "../models/appointmentModel.js";
 import mongoose, { ClientSession, Schema } from "mongoose";
 import { IAppointmentRepo } from "../Interfaces/appointment/IAppointmentRepo.js";
-import { all } from "axios";
-import DoctorController from "../controllers/doctorController.js";
-import { captureRejectionSymbol } from "node:events";
+import { IPaymentStatus } from "../types/appointment.types.js";
 
 class AppointmentRepo implements IAppointmentRepo {
-  // Method to create a new appointment
   public async createAppointment(
     appointmentData: IAppointment
   ): Promise<IAppointment> {
@@ -24,13 +18,17 @@ class AppointmentRepo implements IAppointmentRepo {
   public async updatePatientId(
     appointmentId: string,
     patientId: string
-  ): Promise<any> {
+  ): Promise<IAppointment | null> {
     try {
       const updatedAppointment = await AppointmentModel.findByIdAndUpdate(
         { _id: appointmentId },
         { patientId },
-        { new: true } // Return the updated document
+        { new: true }
       );
+
+      if (!updatedAppointment)
+        throw new Error("No appointment found with the provided ID.");
+
       return updatedAppointment;
     } catch (error: any) {
       throw new Error(
@@ -43,12 +41,18 @@ class AppointmentRepo implements IAppointmentRepo {
     doctorId: string,
     appointmentDate: Date,
     timeSlot: string
-  ): Promise<any | null> {
-    return await AppointmentModel.findOne({
+  ): Promise<IAppointment | null> {
+    const appointment = await AppointmentModel.findOne({
       doctorId,
       appointmentDate,
       timeSlot,
     });
+
+    if (!appointment) {
+      return null;
+    }
+
+    return appointment;
   }
 
   public async appointmentRetrievalWithPatient(
@@ -75,7 +79,7 @@ class AppointmentRepo implements IAppointmentRepo {
         },
       ]);
       if (appointment.length === 0) {
-        return null; // No appointment found
+        return null;
       }
 
       return appointment[0];
@@ -89,15 +93,19 @@ class AppointmentRepo implements IAppointmentRepo {
     try {
       const changedPaymentStatus = await AppointmentModel.findByIdAndUpdate(
         appointmentId,
-        { status: "confirmed", paymentStatus: "paid" }, // fields to update
-        { new: true } // option to return the updated document
+        { status: "confirmed", paymentStatus: "paid" },
+        { new: true }
       );
-
-      console.log("Appointment status updated:", changedPaymentStatus);
+  
+      if (!changedPaymentStatus) {
+        throw new Error("Appointment not found");
+      }
+  
+      
       return changedPaymentStatus;
     } catch (error) {
       console.error("Error updating payment status:", error);
-      throw error; // rethrow the error if you want the caller to handle it
+      throw error;
     }
   }
 
@@ -130,13 +138,12 @@ class AppointmentRepo implements IAppointmentRepo {
     }
   }
 
-  public async cancelAppointmentRepo(appointmentId: string): Promise<any> {
+  public async cancelAppointment(appointmentId: string): Promise<IAppointment> {
     try {
-      // Find the appointment by ID and update the status
       const cancelled = await AppointmentModel.findByIdAndUpdate(
         appointmentId,
-        { status: "cancelled" }, // Updating the status to "Cancelled"
-        { new: true } // This returns the updated document
+        { status: "cancelled" },
+        { new: true }
       );
 
       if (!cancelled) {
@@ -150,7 +157,7 @@ class AppointmentRepo implements IAppointmentRepo {
     }
   }
 
-  public async fetchingOnlineAppointmentRepo(userId: string): Promise<any> {
+  public async fetchingOnlineAppointmentRepo(userId: string): Promise<IAppointment[]> {
     try {
       const fetchedOnlineAppointments = await AppointmentModel.aggregate([
         {
@@ -182,9 +189,8 @@ class AppointmentRepo implements IAppointmentRepo {
     }
   }
 
-  public async fetchingOfflineAppointments(userId: string): Promise<any> {
+  public async fetchingOfflineAppointments(userId: string): Promise<IAppointment[]> {
     try {
-      // Validate if the userId is a valid ObjectId
       if (!mongoose.Types.ObjectId.isValid(userId)) {
         throw new Error("Invalid user ID.");
       }
@@ -194,7 +200,7 @@ class AppointmentRepo implements IAppointmentRepo {
         {
           $match: {
             userId: objectId,
-            consultationMode: "offline", // Filter appointments by offline mode
+            consultationMode: "offline",
           },
         },
         {
@@ -208,11 +214,11 @@ class AppointmentRepo implements IAppointmentRepo {
         {
           $unwind: {
             path: "$doctorDetails",
-            preserveNullAndEmptyArrays: true, // To allow missing doctor details
+            preserveNullAndEmptyArrays: true,
           },
         },
       ]);
-      console.log("Appointments from repository:", appointments);
+    
       return appointments;
     } catch (error) {
       console.error("Error in repository layer:", error);
@@ -224,92 +230,72 @@ class AppointmentRepo implements IAppointmentRepo {
 
   public async appointmentListRepo(doctorId: string): Promise<any> {
     try {
-        // Validate doctorId
-        if (!mongoose.Types.ObjectId.isValid(doctorId)) {
-            throw new Error("Invalid doctorId format");
-        }
+      if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+        throw new Error("Invalid doctorId format");
+      }
 
-        // Aggregation query
-        const appointmentLists = await AppointmentModel.aggregate([
-            // Filter appointments for the specific doctor and valid statuses
-            {
-                $match: {
-                    doctorId: new mongoose.Types.ObjectId(doctorId),
-                    status: { $in: ["confirmed", "pending", "completed"] },
-                },
-            },
-            // Sort appointments by date in descending order
-            {
-                $sort: { appointmentDate: -1 },
-            },
-            // Lookup patient details
-            {
-                $lookup: {
-                    from: "patients", // Patient collection name
-                    localField: "patientId", // Field in appointments
-                    foreignField: "_id", // Field in patients
-                    as: "patientDetails", // Alias for joined data
-                },
-            },
-            {
-                $unwind: {
-                    path: "$patientDetails",
-                    preserveNullAndEmptyArrays: true,
-                },
-            },
-            // Lookup prescription details
-            {
-                $lookup: {
-                    from: "prescriptions", // Prescription collection name
-                    localField: "_id", // Appointment ID
-                    foreignField: "appointmentId", // Appointment ID in prescriptions
-                    as: "prescriptionData", // Alias for joined data
-                },
-            },
-            {
-                $unwind: {
-                    path: "$prescriptionData",
-                    preserveNullAndEmptyArrays: true,
-                },
-            },
-        ]);
+      const appointmentLists = await AppointmentModel.aggregate([
+        {
+          $match: {
+            doctorId: new mongoose.Types.ObjectId(doctorId),
+            status: { $in: ["confirmed", "pending", "completed"] },
+          },
+        },
 
-        // Return the aggregated list
-        return appointmentLists;
-    } catch (error:any) {
-        console.error("Error in appointmentListRepo:", error.message);
-        throw new Error("An error occurred while fetching appointment lists.");
+        {
+          $sort: { appointmentDate: -1 },
+        },
+
+        {
+          $lookup: {
+            from: "patients",
+            localField: "patientId",
+            foreignField: "_id",
+            as: "patientDetails",
+          },
+        },
+        {
+          $unwind: {
+            path: "$patientDetails",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        {
+          $lookup: {
+            from: "prescriptions",
+            localField: "_id",
+            foreignField: "appointmentId",
+            as: "prescriptionData",
+          },
+        },
+        {
+          $unwind: {
+            path: "$prescriptionData",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+      ]);
+
+      return appointmentLists;
+    } catch (error: any) {
+      console.error("Error in appointmentListRepo:", error.message);
+      throw new Error("An error occurred while fetching appointment lists.");
     }
-}
+  }
 
-
-  //fethcing total count of  completed appointments
-
-  public async fetchTotalAppointmentsCount(): Promise<any> {
+  public async fetchTotalAppointmentsCount(): Promise<number> {
     try {
       const totalAppointmentCount = await AppointmentModel.find({
         status: "completed",
       }).countDocuments();
-      console.log("total appointments", totalAppointmentCount);
+      
       return totalAppointmentCount;
     } catch (error: any) {
-      console.log(error);
+    
       throw Error("error occured in the appointmentRepository", error);
     }
   }
-
-  // public async fetchAppointmentDataForFraph():Promise<any>{
-  //   try{
-  //     const appointments = await AppointmentModel.find({
-  //       status: { $in: ['confirmed', 'completed'] },
-  //     });
-
-  //     return appointments;
-
-  //   }catch(error:any){
-  //     throw new Error(error)
-  //   }
-  // }
 
   public async fetchYearlyAppointmentData(): Promise<any> {
     try {
@@ -343,7 +329,7 @@ class AppointmentRepo implements IAppointmentRepo {
 
       return data;
     } catch (error) {
-      console.error("Error fetching yearly appointment data:", error);
+      
       throw new Error("Error fetching yearly appointment data");
     }
   }
@@ -379,7 +365,6 @@ class AppointmentRepo implements IAppointmentRepo {
         },
       ]);
 
-      // Map month numbers to names
       const monthNames = [
         "Jan",
         "Feb",
@@ -403,7 +388,7 @@ class AppointmentRepo implements IAppointmentRepo {
 
       return formattedData;
     } catch (error) {
-      console.error("Error fetching monthly appointment data:", error);
+    
       throw new Error("Error fetching monthly appointment data");
     }
   }
@@ -442,7 +427,7 @@ class AppointmentRepo implements IAppointmentRepo {
 
       return data;
     } catch (error) {
-      console.error("Error fetching daily appointment data:", error);
+      
       throw new Error("Error fetching daily appointment data");
     }
   }
@@ -481,14 +466,13 @@ class AppointmentRepo implements IAppointmentRepo {
         0
       );
 
-      // Add percentage to each specialization
       const formattedData = data.map((item) => ({
         specialization: item._id,
         totalAppointments: item.totalAppointments,
         percentage: (
           (item.totalAppointments / totalAppointments) *
           100
-        ).toFixed(2), // Convert to percentage
+        ).toFixed(2),
       }));
 
       return formattedData;
@@ -501,7 +485,7 @@ class AppointmentRepo implements IAppointmentRepo {
   public async fetchAvailableDoctors(): Promise<any> {
     try {
       const todayDate = new Date().toISOString();
-      const [date] = todayDate.split("T"); // Get only the date part
+      const [date] = todayDate.split("T");
       console.log("Today's date:", date);
 
       const availableDoctors = await AppointmentModel.aggregate([
@@ -529,203 +513,193 @@ class AppointmentRepo implements IAppointmentRepo {
           $unwind: "$doctorDetails",
         },
         {
-          $project:{
-            _id:1,
-            doctorName:'$doctorDetails.personalInfo.name',
-            specialization:'$doctorDetails.professionalInfo.specialization',
-            Image:'$doctorDetails.personalInfo.profilePicture',
-
-          }
+          $project: {
+            _id: 1,
+            doctorName: "$doctorDetails.personalInfo.name",
+            specialization: "$doctorDetails.professionalInfo.specialization",
+            Image: "$doctorDetails.personalInfo.profilePicture",
+          },
         },
         {
-          $limit:4
-        }
+          $limit: 4,
+        },
       ]);
       console.log("available doctors", availableDoctors);
 
-      return availableDoctors; // Return the results
+      return availableDoctors;
     } catch (error: any) {
       console.error("Error in fetchAvailableDoctors:", error);
       throw new Error(`Error fetching available doctors: ${error.message}`);
     }
   }
 
-
   public async getSpecialisationPercentageRepo(): Promise<any> {
     try {
       const specialisationPercentage = await AppointmentModel.aggregate([
-        // Match appointments with specific statuses
         {
           $match: {
-            status: { $in: ['completed', 'confirmed'] },
+            status: { $in: ["completed", "confirmed"] },
           },
         },
-        // Lookup doctor details
+
         {
           $lookup: {
-            from: 'doctors',
-            localField: 'doctorId',
-            foreignField: '_id',
-            as: 'doctorDetails',
+            from: "doctors",
+            localField: "doctorId",
+            foreignField: "_id",
+            as: "doctorDetails",
           },
         },
-        // Unwind doctor details
+
         {
-          $unwind: '$doctorDetails',
+          $unwind: "$doctorDetails",
         },
-        // Group by specialization and count appointments
+
         {
           $group: {
-            _id: '$doctorDetails.professionalInfo.specialization', // Group by specialization
-            count: { $sum: 1 }, // Count appointments
+            _id: "$doctorDetails.professionalInfo.specialization",
+            count: { $sum: 1 },
           },
         },
-        // Calculate total appointments for all specializations
+
         {
           $group: {
-            _id: null, // Group to calculate the total count
-            total: { $sum: '$count' }, // Sum up all specialization counts
-            data: { $push: { specialization: '$_id', count: '$count' } }, // Push details for later processing
+            _id: null,
+            total: { $sum: "$count" },
+            data: { $push: { specialization: "$_id", count: "$count" } },
           },
         },
-        // Calculate percentage for each specialization
+
         {
-          $unwind: '$data',
+          $unwind: "$data",
         },
         {
           $project: {
-            _id: 0, // Remove _id
-            specialization: '$data.specialization',
-            count: '$data.count',
+            _id: 0,
+            specialization: "$data.specialization",
+            count: "$data.count",
             percentage: {
-              $multiply: [{ $divide: ['$data.count', '$total'] }, 100], // Calculate percentage
+              $multiply: [{ $divide: ["$data.count", "$total"] }, 100],
             },
           },
         },
-        // Sort by percentage in descending order
+
         {
           $sort: {
             percentage: -1,
           },
         },
       ]);
-  
-      console.log('Specialisation percentages:', specialisationPercentage);
+
+      console.log("Specialisation percentages:", specialisationPercentage);
       return specialisationPercentage;
     } catch (error: any) {
-      throw new Error(`Error occurred in the getSpecialisationPercentageRepo: ${error.message}`);
+      throw new Error(
+        `Error occurred in the getSpecialisationPercentageRepo: ${error.message}`
+      );
     }
   }
-
-
 
   public async getAppointmentForDashboard(): Promise<any> {
     try {
       const data = await AppointmentModel.aggregate([
         {
           $match: {
-            status: 'confirmed', // Filter confirmed appointments
+            status: "confirmed",
           },
         },
         {
           $sort: {
-            createdAt: -1, // Sort by `createdAt` in descending order (newest first)
+            createdAt: -1,
           },
         },
         {
           $lookup: {
-            from: 'users',
-            localField: 'userId',
-            foreignField: '_id',
-            as: 'userDetails',
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "userDetails",
           },
         },
         {
-          $unwind: '$userDetails',
+          $unwind: "$userDetails",
         },
         {
-          $limit: 5, // Take only the top 5 documents
+          $limit: 5,
         },
         {
           $project: {
             _id: 0, // Exclude the `_id` field
-            userName: '$userDetails.name', // Include user name from `userDetails` 
-            image:'$userDetails.photo',
+            userName: "$userDetails.name",
+            image: "$userDetails.photo",
             appointmentDate: {
-              $dateToString: { format: '%Y-%m-%d', date: '$appointmentDate' }, 
+              $dateToString: { format: "%Y-%m-%d", date: "$appointmentDate" },
             },
-            timeSlot:1
-             
+            timeSlot: 1,
           },
         },
       ]);
-      
 
-      console.log('appointments',data)
-      return data
-  
+      console.log("appointments", data);
+      return data;
+
       return data;
     } catch (error: any) {
       throw new Error(`Error in getAppointmentForDashboard: ${error.message}`);
     }
   }
-  
 
   public async fetchAllAppointmentRepo(): Promise<any> {
     try {
       const allAppointments = await AppointmentModel.aggregate([
         {
           $lookup: {
-            from: 'doctors',
-            localField: 'doctorId', // Ensure doctorId is the correct field in your AppointmentModel
-            foreignField: '_id',
-            as: 'doctorDetails', // The result will be stored in doctorDetails
-          }
+            from: "doctors",
+            localField: "doctorId",
+            foreignField: "_id",
+            as: "doctorDetails",
+          },
         },
         {
-          $unwind: "$doctorDetails" // Unwind to flatten the array of doctorDetails
+          $unwind: "$doctorDetails",
         },
         {
           $lookup: {
-            from: 'users',
-            localField: 'userId', // Ensure userId is the correct field in your AppointmentModel
-            foreignField: '_id',
-            as: 'userDetails', // The result will be stored in userDetails
-          }
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "userDetails",
+          },
         },
         {
-          $unwind: "$userDetails" // Unwind to flatten the array of userDetails
+          $unwind: "$userDetails",
         },
         {
           $sort: {
-            createdAt: -1 // Sort by creation date in descending order
-          }
+            createdAt: -1,
+          },
         },
         {
           $project: {
-            'doctorDetails.personalInfo.name': 1, // Project doctor's name
-            'doctorDetails.professionalInfo.specialization': 1, // Project doctor's specialization
-            'userDetails.name': 1, // Project user's name
-            'appointmentDate': {
+            "doctorDetails.personalInfo.name": 1,
+            "doctorDetails.professionalInfo.specialization": 1,
+            "userDetails.name": 1,
+            appointmentDate: {
               $dateToString: {
-                format: "%Y-%m-%d", // Format the appointment date as yyyy-mm-dd
-                date: "$appointmentDate" // The appointment date field to format
-              }
+                format: "%Y-%m-%d",
+                date: "$appointmentDate",
+              },
             },
-            'timeSlot': 1, // Project the time slot field if it exists in your AppointmentModel
-            'consultationMode': 1, // Project the consultation mode (offline/online)
-            'status': 1, // Project the appointment status
-            createdAt: 1 // Keep the createdAt field to preserve the sorting
-          }
-        }
+            timeSlot: 1,
+            consultationMode: 1,
+            status: 1,
+            createdAt: 1,
+          },
+        },
       ]);
-      
-       // Return the fetched and formatted appointments
-      
-      
 
-      console.log('allAppointments',allAppointments)
-  
+      console.log("allAppointments", allAppointments);
+
       return allAppointments;
     } catch (error) {
       console.error(error);
@@ -733,30 +707,27 @@ class AppointmentRepo implements IAppointmentRepo {
     }
   }
 
-
-  public async countAppointmentsForToday(doctorId: string): Promise<number | any> {
+  public async countAppointmentsForToday(
+    doctorId: string
+  ): Promise<number | any> {
     try {
-      // Get today's date in the format 'YYYY-MM-DD'
-      const today = new Date().toISOString().split('T')[0];
-  
-      // Query MongoDB to find appointments for the doctor today
+      const today = new Date().toISOString().split("T")[0];
+
       const appointments = await AppointmentModel.countDocuments({
         doctorId: doctorId,
         appointmentDate: {
-          $gte: new Date(today),  // Start of today
-          $lt: new Date(new Date(today).setDate(new Date(today).getDate() + 1))  // End of today (next day's start)
-        }
+          $gte: new Date(today),
+          $lt: new Date(new Date(today).setDate(new Date(today).getDate() + 1)),
+        },
       });
-      console.log("woooow",appointments)
-  
-      return appointments;  // Return the count of today's appointments
+      console.log("woooow", appointments);
+
+      return appointments;
     } catch (error) {
       console.error(error);
-      throw new Error('Error occurred while counting appointments for today');
+      throw new Error("Error occurred while counting appointments for today");
     }
   }
-
-
 
   public async getTotalAppointmentsCount(doctorId: string): Promise<number> {
     try {
@@ -764,161 +735,179 @@ class AppointmentRepo implements IAppointmentRepo {
         {
           $match: {
             doctorId: new mongoose.Types.ObjectId(doctorId),
-            status: { $in: ['confirmed', 'completed'] },
+            status: { $in: ["confirmed", "completed"] },
           },
         },
         {
-          $count: "totalAppointments", // Counts the matching documents
+          $count: "totalAppointments",
         },
       ]);
-  
+
       return result.length > 0 ? result[0].totalAppointments : 0;
     } catch (error: any) {
       console.error("Error in getTotalAppointmentsCount:", error.message);
       throw new Error("Error occurred in fetching total appointments count");
     }
   }
-  
-  public async getTotalOnlineAppointmentsForDoctor(doctorId: string): Promise<number> {
+
+  public async getTotalOnlineAppointmentsForDoctor(
+    doctorId: string
+  ): Promise<number> {
     try {
       const result = await AppointmentModel.aggregate([
         {
           $match: {
             doctorId: new mongoose.Types.ObjectId(doctorId),
-            status: 'completed',
-            consultationMode: 'online', // Matches only online appointments
+            status: "completed",
+            consultationMode: "online",
           },
         },
         {
-          $count: "totalOnlineAppointments", // Counts the matching documents
+          $count: "totalOnlineAppointments",
         },
       ]);
-      console.log('result',result)
-  
+      console.log("result", result);
+
       return result.length > 0 ? result[0].totalOnlineAppointments : 0;
     } catch (error: any) {
-      console.error("Error in getTotalOnlineAppointmentsForDoctor:", error.message);
-      throw new Error("Error occurred in fetching total online appointments count");
+      console.error(
+        "Error in getTotalOnlineAppointmentsForDoctor:",
+        error.message
+      );
+      throw new Error(
+        "Error occurred in fetching total online appointments count"
+      );
     }
   }
-  
-  
-  public async getTotalOfflineAppointmentsForDoctor(doctorId: string): Promise<number> {
+
+  public async getTotalOfflineAppointmentsForDoctor(
+    doctorId: string
+  ): Promise<number> {
     try {
       const result = await AppointmentModel.aggregate([
         {
           $match: {
             doctorId: new mongoose.Types.ObjectId(doctorId),
-            status: 'completed',
-            consultationMode: 'offline', // Matches only offline appointments
+            status: "completed",
+            consultationMode: "offline",
           },
         },
         {
-          $count: "totalOfflineAppointments", // Counts the matching documents
+          $count: "totalOfflineAppointments",
         },
       ]);
-  
+
       return result.length > 0 ? result[0].totalOfflineAppointments : 0;
     } catch (error: any) {
-      console.error("Error in getTotalOfflineAppointmentsForDoctor:", error.message);
-      throw new Error("Error occurred in fetching total offline appointments count");
+      console.error(
+        "Error in getTotalOfflineAppointmentsForDoctor:",
+        error.message
+      );
+      throw new Error(
+        "Error occurred in fetching total offline appointments count"
+      );
     }
   }
 
+  public async getLatestAppointmentRepo(doctorId: string): Promise<any> {
+    try {
+      const appointments = await AppointmentModel.aggregate([
+        {
+          $match: {
+            doctorId: new mongoose.Types.ObjectId(doctorId),
+            status: "confirmed",
+          },
+        },
 
-  public async getLatestAppointmentRepo(doctorId:string):Promise<any>{
-    try{
-
-      const appointments=await AppointmentModel.aggregate([{
-       $match:{
-        doctorId:new mongoose.Types.ObjectId(doctorId),
-        status:'confirmed'
-
-       }
-      },
-
-       {
-        $lookup:{
-          from:'patients',
-          localField:'patientId',
-          foreignField:'_id',
-          as:'patientDetails'
-        }
-       },
-       {
-        $sort:{
-          createdAt:-1
-        }
-       },{
-        $limit:5
-       }
-        
-      ])
-      console.log('latest appointments',appointments)
+        {
+          $lookup: {
+            from: "patients",
+            localField: "patientId",
+            foreignField: "_id",
+            as: "patientDetails",
+          },
+        },
+        {
+          $sort: {
+            createdAt: -1,
+          },
+        },
+        {
+          $limit: 5,
+        },
+      ]);
+      console.log("latest appointments", appointments);
       return appointments;
-
-    }catch(error:any){
-      throw Error('error occured in the getLatestAppointmentRepo ',error.message)
+    } catch (error: any) {
+      throw Error(
+        "error occured in the getLatestAppointmentRepo ",
+        error.message
+      );
     }
   }
 
-  public async getTotalPatientCountFromAppointments(doctorId:string):Promise<any>{
-    try{
-      const totalPatients=await AppointmentModel.find({doctorId:doctorId}).distinct('patientId').countDocuments();
-      console.log('total pateints',totalPatients)
-      return totalPatients
-
-    }catch(error:any){
-      throw new Error('error occured in the ',error.message)
+  public async getTotalPatientCountFromAppointments(
+    doctorId: string
+  ): Promise<any> {
+    try {
+      const totalPatients = await AppointmentModel.find({ doctorId: doctorId })
+        .distinct("patientId")
+        .countDocuments();
+      
+      return totalPatients;
+    } catch (error: any) {
+      throw new Error("error occured in the ", error.message);
     }
-
   }
 
-  public async getAppointmentsAndPatients(doctorId: string, time: string): Promise<any> {
+  public async getAppointmentsAndPatients(
+    doctorId: string,
+    time: string
+  ): Promise<any> {
     try {
       let groupByFields = {};
-      if (time === 'yearly') {
-        groupByFields = { year: { $year: '$appointmentDate' } };
-      } else if (time === 'monthly') {
+      if (time === "yearly") {
+        groupByFields = { year: { $year: "$appointmentDate" } };
+      } else if (time === "monthly") {
         groupByFields = {
-          year: { $year: '$appointmentDate' },
-          month: { $month: '$appointmentDate' },
+          year: { $year: "$appointmentDate" },
+          month: { $month: "$appointmentDate" },
         };
-      } else if (time === 'daily') {
+      } else if (time === "daily") {
         groupByFields = {
-          year: { $year: '$appointmentDate' },
-          month: { $month: '$appointmentDate' },
-          day: { $dayOfMonth: '$appointmentDate' },
+          year: { $year: "$appointmentDate" },
+          month: { $month: "$appointmentDate" },
+          day: { $dayOfMonth: "$appointmentDate" },
         };
       }
 
       const data = await AppointmentModel.aggregate([
-        { $match: { doctorId:new mongoose.Types.ObjectId(doctorId) } },
+        { $match: { doctorId: new mongoose.Types.ObjectId(doctorId) } },
         {
           $group: {
             _id: groupByFields,
             totalAppointments: { $sum: 1 },
-            uniquePatients: { $addToSet: '$patientId' },
+            uniquePatients: { $addToSet: "$patientId" },
           },
         },
         {
           $project: {
             _id: 0,
-            time: '$_id',
+            time: "$_id",
             totalAppointments: 1,
-            totalPatients: { $size: '$uniquePatients' },
+            totalPatients: { $size: "$uniquePatients" },
           },
         },
-        { $sort: { 'time.year': -1, 'time.month': -1, 'time.day': -1 } }, // Sort results
+        { $sort: { "time.year": -1, "time.month": -1, "time.day": -1 } },
       ]);
-      console.log('data',data)
+    
       return data;
     } catch (error: any) {
       throw new Error(`Error in AppointmentRepository: ${error.message}`);
     }
   }
 
-  public async patientsCount(doctorId:string):Promise<any>{
+  public async patientsCount(doctorId: string): Promise<number |any> {
     try {
       const patientCounts = await AppointmentModel.aggregate([
         {
@@ -928,51 +917,52 @@ class AppointmentRepo implements IAppointmentRepo {
         },
         {
           $group: {
-            _id: null, // Group all matched documents
-            uniquePatients: { $addToSet: '$patientId' }, // Collect unique patient IDs
+            _id: null,
+            uniquePatients: { $addToSet: "$patientId" },
           },
         },
         {
           $lookup: {
-            from: 'patients', // Name of the patients collection
-            localField: 'uniquePatients',
-            foreignField: '_id',
-            as: 'patientDetails',
+            from: "patients",
+            localField: "uniquePatients",
+            foreignField: "_id",
+            as: "patientDetails",
           },
         },
         {
-          $unwind: '$patientDetails', // Unwind the array of patient details
+          $unwind: "$patientDetails",
         },
         {
           $group: {
-            _id: '$patientDetails.gender', // Group by gender
-            count: { $sum: 1 }, // Count the number of patients for each gender
+            _id: "$patientDetails.gender", 
+            count: { $sum: 1 },
           },
         },
       ]);
-  
-      return patientCounts; // Returns an array of gender counts
+
+      return patientCounts;
     } catch (error: any) {
       throw new Error(`Error in appointmentRepo: ${error.message}`);
     }
-  
-}
-
-public async markAsCompleted(appointmentId: string): Promise<any> {
-  try {
-    const updatedStatus = await AppointmentModel.findByIdAndUpdate(
-      appointmentId,
-      { status: "completed" }, // Update the status to 'completed'
-      { new: true } // Return the updated document
-    );
-
-    return updatedStatus;
-  } catch (error: any) {
-    console.error("Error in markAsCompleted:", error.message);
-    throw new Error(error.message || "Repository error occurred");
   }
-}
 
+  public async markAsCompleted(appointmentId: string): Promise<IAppointment> {
+    try {
+      const updatedStatus = await AppointmentModel.findByIdAndUpdate(
+        appointmentId,
+        { status: "completed" },
+        { new: true }
+      );
+      
+    if (!updatedStatus) {
+      throw new Error("Appointment not found");
+    }
 
+      return updatedStatus;
+    } catch (error: any) {
+      console.error("Error in markAsCompleted:", error.message);
+      throw new Error(error.message || "Repository error occurred");
+    }
+  }
 }
 export default AppointmentRepo;

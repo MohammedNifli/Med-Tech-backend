@@ -1,8 +1,8 @@
 import otpModel from '../models/otpModel.js';
 import { IOtpRepository } from '../Interfaces/otp/IOtpRepository .js';
 import { IOtp } from '../models/otpModel.js';
-import { IUserService } from '../Interfaces/user/IUserService.js';
-import User from '../models/userModel.js';
+
+
 
 class OtpRepository implements IOtpRepository {
     

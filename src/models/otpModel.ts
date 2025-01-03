@@ -14,7 +14,7 @@
         expirationTime: {
             type: Date,
             required: true,
-            default: () => new Date(Date.now() + 15 * 1000), // 30 seconds from now
+            default: () => new Date(Date.now() + 15 * 1000), 
           },
         createdAt:{
             type:Date,

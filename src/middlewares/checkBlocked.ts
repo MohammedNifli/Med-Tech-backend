@@ -4,6 +4,7 @@ import { JwtPayload } from 'jsonwebtoken';
 import Doctor from '../models/doctorModel.js';
 import { HttpStatusCode } from '../enums/httpStatusCodes.js';
 
+
 type ExtendedRequest = Request & {
   user?: JwtPayload;
 };
@@ -34,7 +35,7 @@ const checkBlocked = async (req: ExtendedRequest, res: Response, next: NextFunct
     
       return next(); // Skip the block check for admin
     } else {
-      return res.status(403).json({ message: 'Invalid role.' });
+      return res.status(HttpStatusCode.FORBIDDEN).json({ message: 'Invalid role.' });
     }
 
     if (user?.isBlocked==true) {
@@ -46,7 +47,7 @@ const checkBlocked = async (req: ExtendedRequest, res: Response, next: NextFunct
     next(); 
   } catch (error) {
     console.error('Error checking user block status:', error);
-    res.status(500).json({ message: 'Error checking user status' });
+    res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({ message: 'Error checking user status' });
   }
 };
 

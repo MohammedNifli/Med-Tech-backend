@@ -1,5 +1,4 @@
-// import userRepo from "../repositories/userRepo.js"
-// import doctorRepo from "../repositories/doctorRepo.js";
+
 import { IAdminService } from "../Interfaces/admin/IAdminService.js";
 import { IDoctorRepo } from "../Interfaces/doctor/IDoctorRepo.js";
 import { IUserRepo } from "../Interfaces/user/IUserRepo.js";
@@ -14,7 +13,9 @@ import accessToken from "../utils/accessToken.js";
 import refreshToken from "../utils/refreshToken.js";
 import { IAppointmentRepo } from "../Interfaces/appointment/IAppointmentRepo.js";
 import { IPatientRepo } from "../Interfaces/patient/IPatientRepo.js";
-import { ifeedbackRepository } from "../Interfaces/feedback/IfeedbackRepo.js";
+import { IfeedbackRepository } from "../Interfaces/feedback/IfeedbackRepo.js";
+import { IDoctor } from "../types/doctor.types.js";
+import { IUser } from "../types/user.types.js";
 
 interface authTokens {
   accesToken: string;
@@ -27,7 +28,7 @@ class adminService implements IAdminService {
   private userRepo: IUserRepo;
   private patientRepo:IPatientRepo;
   private appointmentRepo:IAppointmentRepo;
-  private feedbackRepository:ifeedbackRepository;
+  private feedbackRepository:IfeedbackRepository;
 
 
   constructor(
@@ -36,7 +37,7 @@ class adminService implements IAdminService {
     userRepo: IUserRepo,
     patientRepo:IPatientRepo,
     appointmentRepo:IAppointmentRepo,
-    feedbackRepository:ifeedbackRepository
+    feedbackRepository:IfeedbackRepository
   ) {
     this.adminRepo = adminRepo;
     this.doctorRepo = doctorRepo;
@@ -104,12 +105,12 @@ class adminService implements IAdminService {
         });
       }
 
-      // Check if an admin with the same email already exists
+    
       const existingAdmin = await this.adminRepo.findAdminByEmail(data.email);
       if (existingAdmin) {
         return Promise.reject({
           message: "Admin with this email already exists",
-          statusCode: HttpStatusCode.CONFLICT, // 409 Conflict
+          statusCode: HttpStatusCode.CONFLICT, 
         });
       }
 
@@ -162,43 +163,45 @@ class adminService implements IAdminService {
       const updatedUser = await this.userRepo.blockUser(userId);
       return updatedUser as IUserInput;
     } catch (error: any) {
-      console.log(error); // Log before throwing
-      throw new Error(error.message); // Use error.message for better clarity
+      console.log(error); 
+      throw new Error(error.message); 
     }
 }
 
 
 
-public async unBlockUserService(userId: string): Promise<any> {
+public async unBlockUserService(userId: string): Promise<IUserInput> {
   try {
-    const unBlockedUser = await this.userRepo.unBlockUser(userId); // Call the correct method
+    const unBlockedUser = await this.userRepo.unBlockUser(userId); 
     return unBlockedUser;
   } catch (error: any) {
     console.error('Error in service while unblocking user:', error);
-    throw new Error('Error occurred in service: ' + error.message); // Throw error with message
+    throw new Error('Error occurred in service: ' + error.message); 
   }
 }
 
 
 
-  public async approvingDoctor(docId:string):Promise<any>{
+  public async approvingDoctor(docId:string):Promise<IDoctor>{
     try{
       const updatedApprovalStatus=await  this.doctorRepo.approvingStatus(docId)
       return updatedApprovalStatus;
 
     }catch(error){
-      console.log(error)
+     
+      throw error;
     }
   }
 
 
-  public async rejectingDoctorService(docId:string):Promise<any>{
+  public async rejectDoctorApproval(docId:string):Promise<IDoctor>{
     try{
+      if(!docId) throw Error("doctor Id is missing")
       const rejectedApprovalStatus=await  this.doctorRepo.rejectingDocProfile(docId)
       return rejectedApprovalStatus;
 
     }catch(error){
-      console.log(error)
+    throw Error;
     }
   }
 
@@ -240,10 +243,10 @@ public async unBlockDoctor(docId: string): Promise<{ success: boolean, message: 
 }
 
 
-public async fetchUserSearchData(data: string): Promise<any> {
+public async fetchUserSearchData(data: string): Promise<IUser[]> {
   try {
       const fetchedData = await this.userRepo.searchUser(data)
-      return fetchedData; // Return the fetched data to the controller
+      return fetchedData; 
   } catch (error) {
       console.error(error);
       throw new Error('Error in fetching user search data');
@@ -251,7 +254,7 @@ public async fetchUserSearchData(data: string): Promise<any> {
 }
 
 
-public async fetchDoctorData(data: string): Promise<any> {
+public async fetchDoctorData(data: string): Promise<IDoctor[]> {
   try {
       const fetchedDoctors = await this.doctorRepo.adminSearchDoctorData(data);
       return fetchedDoctors;
@@ -261,19 +264,19 @@ public async fetchDoctorData(data: string): Promise<any> {
   }
 }
 
-public async adminDocFilter(filter: string): Promise<any> {
+public async adminDocFilter(filter: string): Promise<IDoctor[]> {
   try {
-      // Call the doctor filtering method from the repository
+      
       const filteredDoctors = await this.doctorRepo.doctorFiltering(filter);
       return filteredDoctors;
   } catch (error) {
       console.log('Error in adminDocFilter:', error);
-      throw error; // Rethrow the error for handling in the controller
+      throw error; 
   }
 }
 
 
-public async getDashboardStatService():Promise<any>{
+public async getDashboardStatService():Promise<{appointmentCount:number;patientCount:number;doctorsCount:number}>{
   try{
     
     const appointmentCount=await this.appointmentRepo.fetchTotalAppointmentsCount();
@@ -288,18 +291,7 @@ public async getDashboardStatService():Promise<any>{
   }
 }
 
-// public async processAppointmentDataForGraph():Promise<any>{
-//   try{
 
-//     const appointmentGraphData=await this.appointmentRepo.();
-//     return appointmentGraphData
-     
-
-//   }catch(error:any){
-//     throw new Error(error)
-//     console.log(error)
-//   }
-// }
 
 public  async fetchYearlyAppointmentData():Promise<any>{
   try{
@@ -354,22 +346,23 @@ public async getDoctorDashStatService():Promise<any>{
   try{
     
     const maleDoctorsIntheMedTech=await this.doctorRepo.fetchTotalMaleDoctorsAvailable()
-    console.log("male",maleDoctorsIntheMedTech)
+  
     const femaleDoctorsIntheMedTech=await this.doctorRepo.fetchTotalFemaleDoctorsAvailable()
-    console.log('femaled',femaleDoctorsIntheMedTech)
+  
     const otherGender=await this.doctorRepo.fetchOtherGender()
     return {maleDoctorsIntheMedTech,femaleDoctorsIntheMedTech,otherGender}
 
-  }catch(error){
-    console.log(error)
+  }catch(error:any){
+
+    throw Error(error)
   }
 }
 
 
-public async fetchTopRatedDoctors(): Promise<any> {
+public async fetchTopRatedDoctors(): Promise<IDoctor[]> {
   try {
       const topRatedDoctors = await this.feedbackRepository.fetchTopRatedDoctors();
-      return topRatedDoctors; // Return the fetched data
+      return topRatedDoctors; 
   } catch (error: any) {
       throw new Error(`Error occurred in the fetchTopRatedDoctors service layer: ${error.message}`);
   }

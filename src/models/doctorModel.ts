@@ -1,11 +1,11 @@
 
-import { profile } from "console";
+
 import { Document, Schema, model } from "mongoose";
-import { title } from "process";
 
 
 
-// Interfaces for Personal Information
+
+
 interface Address {
   street?: string;
   city?: string;
@@ -26,7 +26,7 @@ interface PersonalInfo {
   address: Address;
 }
 
-// Interfaces for Professional Information
+
 interface Qualification {
   degree: string;
   institution: string;
@@ -35,11 +35,11 @@ interface Qualification {
 
 interface Certificate {
   title: string;
-  file: string; // Path or URL to the uploaded certificate file
+  file: string; 
 }
 interface LicenseFile {
   title: string;
-  file: string; // Path or URL to the uploaded certificate file
+  file: string; 
 }
 
 interface ProfessionalInfo {
@@ -52,7 +52,7 @@ interface ProfessionalInfo {
   languages: string[];
 }
 
-// Interfaces for Practice Information
+
 interface Clinic {
   name: string;
   address: string;
@@ -69,7 +69,7 @@ interface PracticeInfo {
   };
 }
 
-// Interfaces for Financial and Rating Information
+
 interface FinancialInfo {
   consultationFees: {
     online?: number;
@@ -84,12 +84,11 @@ interface AccountStatus {
   verificationStatus: 'Pending' | 'Verified' | 'Rejected';
 }
 
-// Interface for Authentication
+
 interface Authentication {
   password: string;
 }
 
-// Main Doctor Interface
 export interface DoctorInput extends Document {
   password: string;
   personalInfo: PersonalInfo;
@@ -143,11 +142,11 @@ const doctorSchema: Schema = new Schema(
 
       }
 
-      ] , // Path or URL to the uploaded license file
+      ] , 
       certificates: [
         {
           title: { type: String },
-          file: { type: String }, // Path or URL to the uploaded certificate file
+          file: { type: String }, 
         },
       ],
       languages: [{ type: String }],
@@ -190,7 +189,7 @@ const doctorSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-// Model Definition
+
 const DoctorModel = model<DoctorInput>('Doctor', doctorSchema);
 
 export default DoctorModel;

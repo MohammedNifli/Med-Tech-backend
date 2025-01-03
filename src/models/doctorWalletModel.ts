@@ -1,34 +1,32 @@
-import mongoose, { Document, Schema } from 'mongoose';
-
-// Define the types for the wallet schema
+import mongoose, { Document, Schema } from 'mongoose'
 interface ITransaction {
   amount: number;
   transactionType: 'deposit' | 'withdrawal' | 'payment' | 'refund';
   date: Date;
-  referenceId?: mongoose.Types.ObjectId; // Reference to an appointment or transaction
+  referenceId?: mongoose.Types.ObjectId; 
 }
 
-interface IWallet extends Document {
-  doctorId: mongoose.Types.ObjectId;  // Reference to the User model
-  balance: number;                    // Current balance of the wallet
-  transactions: ITransaction[];       // Array of transactions
-  createdAt: Date;                    // Date when wallet was created
-  updatedAt: Date;                    // Date when wallet was last updated
+export interface IWallet extends Document {
+  doctorId: mongoose.Types.ObjectId; 
+  balance: number;                    
+  transactions: ITransaction[];      
+  createdAt: Date;                    
+  updatedAt: Date;                    
 }
 
 
 
-// Create the Wallet schema
+
 const walletSchema = new Schema<IWallet>(
     {
       doctorId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Doctor', // Refers to the User collection
+        ref: 'Doctor', 
         required: true,
       },
       balance: {
         type: Number,
-        default: 0, // Initial balance is 0
+        default: 0,
       },
       transactions: [
         {
@@ -62,17 +60,17 @@ const walletSchema = new Schema<IWallet>(
       },
     },
     {
-      timestamps: true, // Automatically handle createdAt and updatedAt
+      timestamps: true, 
     }
   );
   
-  // Update `updatedAt` field before saving
+
   walletSchema.pre('save', function(next) {
     this.updatedAt = new Date();
     next();
   });
   
-  // Create the Wallet model
+  
   const Wallet = mongoose.model<IWallet>('Doctor-Wallet', walletSchema);
   
   export default Wallet;

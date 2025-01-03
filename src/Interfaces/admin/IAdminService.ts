@@ -1,6 +1,7 @@
 import { IAdmin, IAdminInput } from "../../models/adminModel.js";
 import { DoctorInput } from "../../models/doctorModel.js";
 import { IUserInput } from "../../models/userModel.js";
+import { IDoctor } from "../../types/doctor.types.js";
 
 interface authTokens {
   accesToken: string;
@@ -23,11 +24,10 @@ export interface IAdminService {
   // Unblocks a user by their ID
   unBlockUserService(userId: string): Promise<any>;
 
-  // Approves a doctor by their ID
   approvingDoctor(docId: string): Promise<any>;
 
   // Rejects a doctor's profile by their ID
-  rejectingDoctorService(docId: string): Promise<any>;
+  rejectDoctorApproval(docId: string): Promise<any>;
 
   //block specific doctor
   blockDoctor(docId:string):Promise<{success:boolean,message:string}>
@@ -35,7 +35,7 @@ export interface IAdminService {
   unBlockDoctor(docId:string):Promise<{success:boolean,message:string}>
   fetchUserSearchData(data:string):Promise<any>
   fetchDoctorData(data: string): Promise<any>;
-  adminDocFilter(filter: string): Promise<any>;
+  adminDocFilter(filter: string): Promise<IDoctor[]>;
 
   getDashboardStatService():Promise<any>;
   // processAppointmentDataForGraph():Promise<any>
@@ -49,7 +49,7 @@ export interface IAdminService {
 
   getDoctorDashStatService():Promise<any>
 
-  fetchTopRatedDoctors():Promise<any>
+  fetchTopRatedDoctors():Promise<IDoctor[]>
   fetchAvailableDoctorsService():Promise<any>
   getSpecailizationPercentageService():Promise<any>
   fetchAppointmentsForDash():Promise<any>

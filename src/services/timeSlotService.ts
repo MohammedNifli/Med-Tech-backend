@@ -46,13 +46,13 @@ class TimeSlotService implements ITimeSlotService {
     consultationMode: string;
   }): Promise<ITimeSlotDetails[]> {
     return new Promise((resolve, reject) => {
-      // Dynamically resolve the worker script path
-      const isProduction = process.env.NODE_ENV === 'production';  // Check if in production
+      
+      const isProduction = process.env.NODE_ENV === 'production';  
       const workerPath = isProduction
-        ? path.resolve(__dirname, '..', 'workers', 'slotWorker.js')  // For production, adjust the path to the dist folder
-        : path.resolve(__dirname, 'workers', 'slotWorker.js');  // For development, use the src folder
+        ? path.resolve(__dirname, '..', 'workers', 'slotWorker.js')  
+        : path.resolve(__dirname, 'workers', 'slotWorker.js');  
   
-      // Create the worker
+      
       const worker = new Worker(workerPath, {
         workerData: { startDate, endDate, timeSlots, doctorId, availableDays, consultationMode },
       });
@@ -60,7 +60,7 @@ class TimeSlotService implements ITimeSlotService {
       worker.on('message', async (slots: ITimeSlotDetails[]) => {
         try {
           await this.timeSlotRepo.batchInsertTimeSlots(doctorId, slots);
-          resolve(slots); // Return the inserted slots
+          resolve(slots);
         } catch (error) {
           reject(error);
         }
@@ -77,25 +77,24 @@ class TimeSlotService implements ITimeSlotService {
   }
   
 
-  public async fetchDoctorSlotsService(doctorId: string): Promise<any[]> {
+  public async fetchDoctorSlots(doctorId: string): Promise<ITimeSlot[]> {
     try {
-      if (!doctorId) {
-        throw new Error("Doctor ID is not provided");
-      }
+      if (!doctorId)  throw new Error("Doctor ID is not provided");
+      
 
       const fetchedSlots = await this.timeSlotRepo.fetchDoctorSlotsFromRepo(
         doctorId
-      ); // Example function name
+      ); 
       return fetchedSlots;
     } catch (error) {
       console.error("Error in service while fetching doctor slots:", error);
-      throw error; // Rethrow the error to be caught in the controller
+      throw error; 
     }
   }
 
 
 
-  public async fetchDoctorOfflineSlotsService(doctorId: string): Promise<any[]> {
+  public async fetchDoctorOfflineSlots(doctorId: string): Promise<ITimeSlot[]> {
     try {
       if (!doctorId) {
         throw new Error("Doctor ID is not provided");
@@ -103,11 +102,11 @@ class TimeSlotService implements ITimeSlotService {
 
       const fetchedSlots = await this.timeSlotRepo.fetchDoctorOfflineSlotsFromRepo(
         doctorId
-      ); // Example function name
+      ); 
       return fetchedSlots;
     } catch (error) {
       console.error("Error in service while fetching doctor slots:", error);
-      throw error; // Rethrow the error to be caught in the controller
+      throw error; 
     }
   }
 
@@ -125,17 +124,17 @@ class TimeSlotService implements ITimeSlotService {
         throw new Error("Time slots array is empty or invalid.");
       }
 
-      // Call the repository function to check slot existence
+    
       const existingSlots = await this.timeSlotRepo.checkSlotExistancyRepo(
         doctorId,
         startDate,
         endDate,
         timeSlots
       );
-      return existingSlots.length > 0; // Return true if slot exists, false otherwise
+      return existingSlots.length > 0; 
     } catch (error) {
       console.error("Error checking slot existence:", error);
-      throw error; // Rethrow the error to handle it upstream
+      throw error; 
     }
   }
 
@@ -148,15 +147,15 @@ class TimeSlotService implements ITimeSlotService {
 
         if (!slots || slots.length === 0) {
             throw new Error(`No time slots found for doctorId: ${doctorId} on date: ${date}`);
-        }
+        } 
 
-        // Convert each slot's date and time to IST in "hh:mm" format
+        
         const slotsInIST = slots
             .filter((slot: ITimeSlotDetails) => {
                 const slotDate = slot.startDateTime.toISOString().split("T")[0];
-                return slotDate === date; // Match slots with the provided date only
+                return slotDate === date; 
             })
-            .map((slot: ITimeSlotDetails) => {  // Use slot instead of slots[0]
+            .map((slot: ITimeSlotDetails) => {  
                 const startIST = new Date(slot.startDateTime).toLocaleTimeString("en-IN", {
                     timeZone: "Asia/Kolkata",
                     hour: "2-digit",
@@ -181,18 +180,24 @@ class TimeSlotService implements ITimeSlotService {
                 };
             });
 
-        return slotsInIST; // Return the formatted slots
+        return slotsInIST; 
 
     } catch (error) {
         console.error("Error in fetchDoctorAllSlots (Service):", error);
         throw new Error("Error fetching doctor's time slots");
     }
 }
-
-public async deleteTimeSlotService(docId: string, date: string, time: string): Promise<any> {
+public async deleteTimeSlot(docId: string, date: string, time: string): Promise<ITimeSlot> {
   try {
-    // Call repository method to delete slot
+    if (!docId || !date || !time) throw new Error("Missing required parameters: docId, date, or time.");
+    
+
     const deletedSlot = await this.timeSlotRepo.deleteTimeSloteRepo(docId, date, time);
+
+    if (!deletedSlot) {
+      throw new Error("Time slot not found or cannot be deleted.");
+    }
+
     return deletedSlot;
   } catch (error) {
     console.error("Error deleting slot in service:", error);
@@ -200,13 +205,19 @@ public async deleteTimeSlotService(docId: string, date: string, time: string): P
   }
 }
 
-// Service
-public async editTimeSlot(slotData: any): Promise<any> {
+
+
+public async editTimeSlot(slotData: any): Promise<ITimeSlot> {
   try {
-    // Pass the slot data to the repository for updating
+    if (!slotData) throw new Error("Slot data is required.");
+    
     const updatedSlot = await this.timeSlotRepo.editTimeSlotRepo(slotData);
 
-    return updatedSlot; // Return the updated slot data
+    if (!updatedSlot) {
+      throw new Error("Failed to update the time slot.");
+    }
+
+    return updatedSlot;
   } catch (error) {
     console.log(error);
     throw new Error('Error occurred while updating the time slot');
@@ -219,8 +230,12 @@ public async changeSlotStatus(
   slotDate: string,
   time: string,
   status: 'available' | 'booked' | 'canceled' | 'not available'
-): Promise<any> {
+): Promise<ITimeSlot> {
   try {
+    if (!doctorId || !slotDate || !time || !status) {
+      throw new Error("All parameters (doctorId, slotDate, time, status) are required.");
+    }
+
     const updatedSlot = await this.timeSlotRepo.updateSlotStatus(
       doctorId,
       slotDate,
@@ -228,11 +243,17 @@ public async changeSlotStatus(
       status
     );
 
+    if (!updatedSlot) {
+      throw new Error("Failed to update the slot status.");
+    }
+
     return updatedSlot;
-  } catch (error:any) {
+  } catch (error: any) {
+    console.error("Error in changeSlotStatus:", error);
     throw new Error(`Error in changing slot status: ${error.message}`);
   }
 }
+
 
 }
 

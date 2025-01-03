@@ -1,7 +1,7 @@
 import Payment from '../models/paymentModel.js';
 
 class PaymentRepo {
-  // Repository Layer to handle DB operations
+
   public async addPaymentRepo(userId: string, appointmentId:string,amount: number, status: string): Promise<any> {
     try {
       const paymentData = new Payment({
@@ -9,10 +9,10 @@ class PaymentRepo {
         appointmentId,
         amount,
         status,
-        date: new Date(), // Set the date to the current time
+        date: new Date(), 
       });
 
-      // Save to MongoDB and return the result
+  
       const savedPayment = await paymentData.save();
       return savedPayment;
     } catch (error) {

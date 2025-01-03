@@ -29,12 +29,14 @@
     "moment-timezone": "^0.5.46",
     "mongodb": "^6.8.1",
     "mongoose": "^8.6.0",
+    "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^6.9.15",
     "socket.io": "^4.8.1",
     "stripe": "^17.3.1",
-    "type": "file:../../../../../../google-auth-library"
+    "type": "file:../../../../../../google-auth-library",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -45,6 +47,7 @@
     "@types/moment": "^2.13.0",
     "@types/moment-timezone": "^0.5.30",
     "@types/mongoose": "^5.11.97",
+    "@types/morgan": "^1.9.9",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.9.3",
     "@types/nodemailer": "^6.4.15",

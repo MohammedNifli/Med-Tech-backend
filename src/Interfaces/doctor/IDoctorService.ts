@@ -1,4 +1,5 @@
 import { DoctorInput } from "../../models/doctorModel.js";
+import { IDoctor } from "../../types/doctor.types.js";
 
 export interface IDoctorService {
   register(
@@ -26,7 +27,7 @@ export interface IDoctorService {
 
   applyApproval(id: string, data: Partial<DoctorInput>): Promise<DoctorInput >;
 
-  specialiationService(): Promise<string[]>;
+  specializationService(): Promise<string[]>;
 
   filterDoctors(filters: {
     consultationFee?: any;
@@ -35,10 +36,10 @@ export interface IDoctorService {
     gender?: string;
     consultationMode?: string;
     availability?: string;
-  }): Promise<any[]>;
+  }): Promise<IDoctor[]>;
 
-  showingDctorStatusService(docId:string):Promise<string>;
-  changePasswordService(
+  fetchDctorStatus(docId:string):Promise<string>;
+  changePassword(
     docId: string,
     currentPassword: string,
     newPassword: string

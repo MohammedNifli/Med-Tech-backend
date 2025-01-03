@@ -18,10 +18,13 @@ import chatRoute from "./routes/chatRoute.js";
 import messageRoute from "./routes/messageRoute.js";
 import docWalletRoute from "./routes/doctorWalletRoute.js";
 import prescriptionRoute from "./routes/prescriptionRoute.js";
+import logger from './utils/logger.js'
+import morgan from "morgan";
 
 
 import { Server } from 'socket.io';
 import {createServer} from 'http'
+
 
 
 
@@ -33,6 +36,23 @@ connectDB();
 
 const app = express();
 
+const morganFormat = ":method :url :status :response-time ms";
+app.use(
+  morgan(morganFormat, {
+    stream: {
+      write: (message) => {
+        const logObject = {
+          method: message.split(" ")[0],
+          url: message.split(" ")[1],
+          status: message.split(" ")[2],
+          responseTime: message.split(" ")[3],
+        };
+        logger.info(JSON.stringify(logObject));
+      },
+    },
+  })
+);
+
 const server = createServer(app);
 const io=new Server(server,{
   cors:{
@@ -41,12 +61,15 @@ const io=new Server(server,{
 })
 
 
+
+
+
 // Use cookie-parser middleware to parse cookies from the request
 app.use(cookieParser());
 
 // CORS options for allowing cookies and specifying allowed origins
 const corsOptions = {
-  origin: "https://med-tech-connect.vercel.app", 
+  origin: " http://localhost:5173", 
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], 
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,

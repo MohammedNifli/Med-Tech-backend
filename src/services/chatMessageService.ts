@@ -1,6 +1,7 @@
 import { IMessageService } from "../Interfaces/message/IMessageService.js"
 import { IMessageRepo } from "../Interfaces/message/IMessageRepo.js"
 import MessageRepo from "../repositories/messageRepo.js"
+import { IMessage } from "../types/message.types.js"
 
 
 class ChatMessageService implements IMessageService{
@@ -10,7 +11,7 @@ class ChatMessageService implements IMessageService{
 
     }
 
-    public async createMessageService(chatId: string, sender: string, content: string): Promise<any> {
+    public async createMessageService(chatId: string, sender: string, content: string): Promise<IMessage> {
         try {
             const newMessage = await this.messageRepository.createMessageRepo(chatId, sender, content);
             return newMessage;
@@ -20,7 +21,7 @@ class ChatMessageService implements IMessageService{
         }
     }
 
-    public async fetchLatestMessageService(messageId:string):Promise<any>{
+    public async fetchLatestMessageService(messageId:string):Promise<IMessage>{
         try{
             const  latestMessage=await this.messageRepository.fetchLatestMessage(messageId);
             return latestMessage;
@@ -31,7 +32,7 @@ class ChatMessageService implements IMessageService{
         }
     }
 
-    public async loadMessagesService(chatId:string):Promise<any>{
+    public async loadMessagesService(chatId:string):Promise<IMessage[]>{
         try{
             if(!chatId){
                 throw Error('chat id is missing')

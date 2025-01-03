@@ -1,4 +1,4 @@
-// adminRepository.ts
+
 import { IAdminRepo } from "../Interfaces/admin/IAdminRepo.js";
 import Admin, { IAdmin, IAdminInput } from '../models/adminModel.js';
 

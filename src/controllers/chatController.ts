@@ -1,17 +1,18 @@
 import { HttpStatusCode } from "../enums/httpStatusCodes.js";
 import { IChatService } from "../Interfaces/chatInterface/IChatService.js";
 import { Request, Response } from "express";
+import { IChatController } from "../Interfaces/chatInterface/IChatController.js";
 
-class ChatController {
+class ChatController implements IChatController {
   private chatService: IChatService;
   constructor(chatService: IChatService) {
     this.chatService = chatService;
   }
 
-  public async createChat(req: Request, res: Response): Promise<any> {
+  public async createChat(req: Request, res: Response): Promise<Response> {
     try {
       const { participants } = req.body;
-      console.log("participants", participants);
+      
       if (
         !participants ||
         !Array.isArray(participants) ||
@@ -41,7 +42,7 @@ class ChatController {
         .json({ message: "chat created succesfully completed", newChat });
     } catch (error) {
       console.log(error);
-      res
+     return res
         .status(HttpStatusCode.INTERNAL_SERVER_ERROR)
         .json({
           message: "Internal server error occuring in the create Chat method",
@@ -49,7 +50,7 @@ class ChatController {
     }
   }
 
-  public async fetchChatsController(req: Request, res: Response): Promise<any> {
+  public async fetchChatsController(req: Request, res: Response): Promise<Response> {
     try {
       const userId = req.query.id as string;
 
@@ -58,39 +59,39 @@ class ChatController {
       }
 
       const fetchedChats = await this.chatService.fetchChatsService(userId);
-      // console.log("fetchedChats",fetchedChats)
-      return res.status(200).json({ data: fetchedChats });
+      
+      return res.status(HttpStatusCode.OK).json({ data: fetchedChats });
     } catch (error) {
       console.log(error);
-      res.status(500).json({
+      return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
         message: "Internal server error occurred in the fetchChatsController",
       });
     }
   }
 
 
-  public async fetchChatById(req:Request,res:Response){
+  public async fetchChatById(req:Request,res:Response):Promise<Response>{
     const chatId=req.query.chatId as string;
-    console.log("chatID",chatId)
+    
     if(!chatId){
-      res.status(HttpStatusCode.BAD_REQUEST).json({message:"chat ID is missing in the request"})
+     return res.status(HttpStatusCode.BAD_REQUEST).json({message:"chat ID is missing in the request"})
     }
     try{
       const fetchedChatById=await this.chatService.fetchChatByIdService(chatId)
       return res.status(HttpStatusCode.OK).json({messsage:"chat fetched succesfully completed",fetchedChatById})
 
     }catch(error){
-      console.log(error);
-      res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({message:"internal server error in fetchChatById controller"})
+      
+      return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({message:"internal server error in fetchChatById controller"})
     }
   }
 
 
-  public async lastMessageUpdate(req: Request, res: Response): Promise<any> {
+  public async lastMessageUpdate(req: Request, res: Response): Promise<Response> {
     try {
       const { chatId, senderId } = req.body;
 
-      // Validate inputs
+      
       if (!chatId || !senderId) {
         return res.status(HttpStatusCode.BAD_REQUEST).json({
           message: 'chatId and senderId are required.',
@@ -105,19 +106,17 @@ class ChatController {
         });
       }
 
-      res.status(HttpStatusCode.OK).json({
+      return res.status(HttpStatusCode.OK).json({
         message: 'Last message updated successfully',
         updatedChat,
       });
     } catch (error) {
-      console.error('Error in lastMessageUpdate:', error);
-      res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+    
+      return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
         message: 'Internal server error in the lastMessageController',
       });
     }
   }
-
-
 
 
 }

@@ -44,7 +44,7 @@ appointmentRoute.post(
 
 appointmentRoute.get(
   "/get-details",
-  appointmentController.getAppointmentController.bind(appointmentController)
+  appointmentController.getAppointment.bind(appointmentController)
 );
 appointmentRoute.get(
   "/appointmentlist",

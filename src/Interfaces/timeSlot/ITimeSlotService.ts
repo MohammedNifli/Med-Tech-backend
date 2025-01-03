@@ -1,5 +1,5 @@
 import timeSlotService from "../../services/timeSlotService.js";
-import { ITimeSlotDetails } from "../../models/slotModel.js";
+import { ITimeSlot, ITimeSlotDetails } from "../../models/slotModel.js";
 interface TimeSlot {
     startDateTime: Date;
     endDateTime: Date;
@@ -29,16 +29,16 @@ export interface ITimeSlotService{
     consultationMode: string;
   }): Promise<ITimeSlotDetails[]>
 
-      fetchDoctorSlotsService(doctorId: string): Promise<any[]>
+      fetchDoctorSlots(doctorId: string): Promise<ITimeSlot[]>
       checkSlotExistancy(doctorId: string, startDate: Date, endDate: Date, timeSlots: string[]): Promise<boolean>
       fetchDoctorAllSlots(doctorId: string, date: string): Promise<any>
-      deleteTimeSlotService(docId: string, date: string, time: string): Promise<any>
-      editTimeSlot(slotData: any): Promise<any>
-      fetchDoctorOfflineSlotsService(doctorId: string): Promise<any[]>
+      deleteTimeSlot(docId: string, date: string, time: string): Promise<any>
+      editTimeSlot(slotData: any): Promise<ITimeSlot>
+      fetchDoctorOfflineSlots(doctorId: string): Promise<ITimeSlot[]>
       changeSlotStatus(
         doctorId: string,
         slotDate: string,
         time: string,
         status: 'available' | 'booked' | 'canceled' | 'not available'
-      ): Promise<any>
+      ): Promise<ITimeSlot>
 }

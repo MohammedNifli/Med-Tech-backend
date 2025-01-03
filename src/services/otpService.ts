@@ -39,24 +39,23 @@ class OtpService implements IOtpService {
     otp: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      // Check if the email is provided
-      if (!email) {
-        return { success: false, message: "Email is required" };
-      }
+     
+      if (!email)  return { success: false, message: "Email is required" };
 
-      // Fetch OTP data from the repository
+
+     
       const otpData = await this.otpRepo.verifyOTP(email);
 
-      // Check if OTP data is available
+     
       if (!otpData || !otpData.otpHash) {
         return { success: false, message: "OTP not found or expired" };
       }
 
-      // Compare the provided OTP with the hashed OTP from the database
+     
       const isOtpValid: boolean = await bcrypt.compare(otp, otpData.otpHash);
 
       if (isOtpValid) {
-        // If OTP is valid, update user verification status
+       
         const isUserVerified =await this.userRepo.userVerification(email, true);
 
         if (isUserVerified) {
@@ -71,10 +70,10 @@ class OtpService implements IOtpService {
           };
         }
       } else {
-        return { success: false, message: "Invalid OTP" }; // If OTP doesn't match
+        return { success: false, message: "Invalid OTP" }; 
       }
     } catch (error: any) {
-      console.error("Error in verifyOTP:", error);
+  
       return { success: false, message: "Internal server error" };
     }
   }
@@ -92,7 +91,7 @@ class OtpService implements IOtpService {
 
 
     }catch(error){
-      console.log(error)
+      
       throw Error('error occuring in resendOTP');
     }
   }
@@ -109,24 +108,14 @@ class OtpService implements IOtpService {
       await sendMail(email, otp);
       return docOTP;
     } catch (error) {
-      console.log(error);
-      throw error; // Re-throw the error instead of just logging it
+      
+      throw error; 
     } finally {
-      return null; // Add this line to satisfy the linter
+      return null; 
     }
   }
 
-  // public async verifyDocOtp(email:string){
-  //     try{
-  //         if(!email){
-  //             throw new Error('email is not found')
-  //         }
-  //         const doc_OtpVerify=await this.otpRepo.verifyOTP(email)
-
-  //     }catch(error){
-  //         console.log(error)
-  //     }
-  // }
+  
 }
 
 export default OtpService;

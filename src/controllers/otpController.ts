@@ -1,105 +1,99 @@
 import { Response, Request } from "express";
 import { IOtpService } from "../Interfaces/otp/IOtpService.js";
 import { HttpStatusCode } from "../enums/httpStatusCodes.js";
-import { json } from "stream/consumers";
-import { Roles } from "../config/rolesConfig.js";
+import { IOtpController } from "../Interfaces/otp/IOtpController.js";
 
-class OtpController {
-    private otpService: IOtpService;
+class OtpController implements IOtpController {
+  private otpService: IOtpService;
 
-    constructor(otpService: IOtpService) {
-        this.otpService = otpService;
-    }
+  constructor(otpService: IOtpService) {
+    this.otpService = otpService;
+  }
 
-
-    public async sendOTp(req:Request,res:Response){
-        try{
-           
-            const {email}=req.body;
-            console.log("email is not getting in otp controller")
-           
-            const OTP=await this.otpService.sendOTP(email);
-            return res.status(HttpStatusCode.CREATED).json({message:"otp created succesfully completed"})
-
-        }catch(error){
-            console.log(error)
-        }
-
-    }
-
-    public async verifyOTP(req: Request, res: Response): Promise<void> {
-        const { otp, email } = req.body;
-        console.log("email is not foound in verify otp controller   ",email)
-    
-        // Ensure both email and OTP are provided
-        if (!email || !otp) {
-            res.status(HttpStatusCode.BAD_REQUEST).json({ message: "Email and OTP are required." });
-            return;
-        }
-    
-        try {
-            const { success, message } = await this.otpService.verifyOTP(email, otp);
-    
-            if (success) {
-                res.status(HttpStatusCode.OK).json({ message });
-            } else {
-                res.status(HttpStatusCode.BAD_REQUEST).json({ message }); // Send the appropriate error message
-            }
-        } catch (error) {
-            console.error(error);
-            res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({ message: "Internal server error." });
-        }
-    }
-    
+  public async sendOTp(req: Request, res: Response):Promise<Response> {
+    try {
+      const { email } = req.body;
     
 
-    public async resendOTP(req: Request, res: Response): Promise<void> {
-        try {
-            const { email } = req.body;
-            await this.otpService.sendOTP(email);  // `otp` isn't needed, just send a new one
-            res.status(200).json({ message: "OTP resent successfully." });
-        } catch (error) {
-            console.log(error);
-            res.status(500).json({ message: "Error resending OTP." });
-        }
+      const OTP = await this.otpService.sendOTP(email);
+      return res
+        .status(HttpStatusCode.CREATED)
+        .json({ message: "otp created succesfully completed" });
+    } catch (error) {
+      return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({message:"An error occured in sending otp"})
+    }
+  }
+
+  public async verifyOTP(req: Request, res: Response): Promise<void> {
+    const { otp, email } = req.body;
+
+
+    if (!email || !otp) {
+      res
+        .status(HttpStatusCode.BAD_REQUEST)
+        .json({ message: "Email and OTP are required." });
+      return;
     }
 
-    public async docSendOTP(req:Request,res:Response){
-        try{
-            const {email}=req.body;
-            if(!email){
-                return 
-            }
-            const docOTP=await this.otpService.docOTPService(email)
-            res.status(HttpStatusCode.CREATED).json({messge:docOTP})
+    try {
+      const { success, message } = await this.otpService.verifyOTP(email, otp);
 
-            
-        }catch(error){
-            console.log(error)
-        }
-
-    }
-
-    public async verifyDocOTP(req:Request,res:Response){
-        try{
-            const {email,otp}=req.body;
-            if(!email){
-                throw new Error('email is not found')
-            }
-
-            const otpVerify=await this.otpService.verifyOTP(email,otp)
-            return res.status(HttpStatusCode.OK).json({message:'otpverified successfull',otpVerify})
-
-
-
-        }catch(error){
-            console.log(error)
-        } 
-        
-
-    }
-
+      if (success) {
+        res.status(HttpStatusCode.OK).json({ message });
+      } else {
+        res.status(HttpStatusCode.BAD_REQUEST).json({ message });
+      }
+    } catch (error) {
     
+      res
+        .status(HttpStatusCode.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal server error." });
+    }
+  }
+
+  public async resendOTP(req: Request, res: Response): Promise<void> {
+    try {
+      const { email } = req.body;
+      await this.otpService.sendOTP(email);
+      res.status(HttpStatusCode.OK).json({ message: "OTP resent successfully." });
+    } catch (error) {
+      
+      res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({ message: "Error resending OTP." });
+    }
+  }
+
+  public async docSendOTP(req: Request, res: Response):Promise<Response> {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(HttpStatusCode.BAD_REQUEST).json({message:"email is  required"});
+      }
+      const docOTP = await this.otpService.docOTPService(email);
+     return   res.status(HttpStatusCode.CREATED).json({ messge: docOTP });
+    } catch (error) {
+
+      return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({message:"'An error occurred while sending the OTP for doctor registration. Please check the provided contact details or try again later."})
+      
+    }
+  }
+
+  public async verifyDocOTP(req: Request, res: Response) :Promise<Response>{
+    try {
+      const { email, otp } = req.body;
+      if (!email) {
+        throw new Error("email is not found");
+      }
+
+      const otpVerify = await this.otpService.verifyOTP(email, otp);
+      return res
+        .status(HttpStatusCode.OK)
+        .json({ message: "otpverified successfull", otpVerify });
+    } catch (error) {
+      return res
+        .status(HttpStatusCode.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal server error" });
+    }
+  }
 }
 
 export default OtpController;

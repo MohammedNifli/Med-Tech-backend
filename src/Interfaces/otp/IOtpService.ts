@@ -3,5 +3,5 @@ export interface IOtpService {
   verifyOTP(email: string, otp: string):Promise<{ success: boolean, message: string }>;
       resendOTP(email: string): Promise<any>;
   docOTPService(email: string): Promise<string | null>;
-//   verifyDocOtp(email:string):Promise<string>
+
 }

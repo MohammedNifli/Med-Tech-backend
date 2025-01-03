@@ -53,7 +53,7 @@ docRoute.post('/slot', checkBlocked, timeSlotController.addTimeSlots.bind(timeSl
 docRoute.post('/logout', checkRole([Roles.DOCTOR]), checkBlocked, docController.doctorLogout.bind(docController));
 
 // Status route
-docRoute.get('/status/:id', checkRole([Roles.DOCTOR]), checkBlocked, docController.showingDoctorStatus.bind(docController));
+docRoute.get('/status/:id', checkRole([Roles.DOCTOR]), checkBlocked, docController.fetchDoctorStatus.bind(docController));
 
 docRoute.get('/slots',checkRole([Roles.DOCTOR]), checkBlocked,timeSlotController.fetchSlots.bind(timeSlotController))
 

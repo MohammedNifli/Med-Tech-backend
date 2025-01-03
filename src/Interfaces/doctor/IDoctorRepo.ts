@@ -1,4 +1,5 @@
 import { DoctorInput } from "../../models/doctorModel.js";
+import { IDoctor } from "../../types/doctor.types.js";
 
 export interface IDoctorRepo {
   findDoc(email: string): Promise<DoctorInput | null>;
@@ -14,7 +15,7 @@ export interface IDoctorRepo {
 
   approval(docId: string, data: Partial<DoctorInput>): Promise<DoctorInput | { applyApproval: DoctorInput | null }>;
 
-  fetchingSpecialization(): Promise<string[]>;
+  getDistinctSpecializations(): Promise<string[]>;
 
   doctorsFiltering(filters: {
     consultationFee?: any;
@@ -31,9 +32,9 @@ export interface IDoctorRepo {
 
   doctorBlock(docId:string):Promise<any>
   unBlockDoctor(docId:string):Promise<any>
-  adminSearchDoctorData(data: string): Promise<any>
-  changePasswordRepo(docId: string, newPass: string): Promise<boolean>
-  profilePhotoUpdating(docId:string,pic:string):Promise<any>
+  adminSearchDoctorData(data: string): Promise<IDoctor[]>
+  changePassword(docId: string, newPass: string): Promise<boolean>
+  updateProfileImage(docId:string,pic:string):Promise<IDoctor>
   doctorFiltering(filter: string): Promise<any>
   
   fetchTotalDoctorsCount(): Promise<number>

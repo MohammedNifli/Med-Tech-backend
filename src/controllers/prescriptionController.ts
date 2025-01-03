@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { HttpStatusCode } from "../enums/httpStatusCodes.js";
 import { IPrescriptionService } from "../Interfaces/prescription/IPrescriptionService.js";
-
-class Prescription {
+import { IPrescriptionController } from "../Interfaces/prescription/IPrescriptionController.js";
+class Prescription implements IPrescriptionController {
   private prescriptionService: IPrescriptionService;
   constructor(prescriptionService: IPrescriptionService) {
     this.prescriptionService = prescriptionService;
@@ -23,8 +23,8 @@ class Prescription {
       } = req.body;
   
 
-      console.log('the reqbody',req.body)
-      // Ensure the required fields are passed as non-optional
+      
+  
       const prescriptionData = {
         appointmentId,
         patientId,
@@ -50,7 +50,7 @@ class Prescription {
   }
 
 
-  public async getPrescription(req: Request, res: Response): Promise<any> {
+  public async getPrescription(req: Request, res: Response): Promise<Response> {
     try {
       const appointmentId = req.query.appointmentId as string;
   
@@ -68,9 +68,9 @@ class Prescription {
           .json({ message: "No prescription found for this appointment" });
       }
   
-      res.status(HttpStatusCode.OK).json({ prescription });
+     return  res.status(HttpStatusCode.OK).json({ prescription });
     } catch (error: any) {
-      res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({ message: error.message });
+     return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({ message: error.message });
     }
   }
   

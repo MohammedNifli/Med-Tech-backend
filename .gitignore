@@ -6,19 +6,3 @@ node_modules/
 
 
 /dist
-
-# Backend controllers, services, repositories, routes, models, etc.
-# src/controllers/otpController.ts
-# src/Interfaces/message
-# src/Interfaces/chatInterface
-# src/controllers/messageController.ts
-# src/controllers/chatController.ts
-# src/services/chatMessageService.ts
-# src/services/chatService.ts
-# src/repositories/chatRepository.ts
-# src/repositories/messageRepo.ts
-# src/routes/messageRoute.ts
-# src/routes/chatRoute.ts
-# src/models/messageModel.ts
-# src/models/chatModel.ts
-

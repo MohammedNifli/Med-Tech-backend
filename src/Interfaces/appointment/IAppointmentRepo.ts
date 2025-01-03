@@ -1,5 +1,6 @@
 import AppointmentModel,{IAppointmentData} from "../../models/appointmentModel.js"
 import mongoose,{ClientSession} from "mongoose";
+import { IAppointment } from "../../types/appointment.types.js";
 export interface IAppointmentRepo{
     createAppointment(appointmentData: IAppointmentData): Promise<any>
     updatePatientId(appointmentId: string, patientId: string): Promise<any> 
@@ -7,13 +8,13 @@ export interface IAppointmentRepo{
     appointmentRetrievalWithPatient(appointmentId:string):Promise<any>;
     paymentStatusChange(appointmentId:string):Promise<any>;
     appointmentFetching(userId:string):Promise<any>
-    cancelAppointmentRepo(appointmentId:string):Promise<any>;
+    cancelAppointment(appointmentId:string):Promise<IAppointment>;
     fetchingOnlineAppointmentRepo(userId: string): Promise<any>
     fetchingOfflineAppointments(userId:string):Promise<any>
     appointmentListRepo(doctorId:string):Promise<any>
 
     fetchTotalAppointmentsCount():Promise<any>
-    // fetchAppointmentDataForFraph():Promise<any>
+
 
     fetchYearlyAppointmentData(): Promise<any>
     fetchMonthlyAppointmentData(): Promise<any> 
@@ -36,6 +37,6 @@ export interface IAppointmentRepo{
 
     getTotalPatientCountFromAppointments(doctorId:string):Promise<any>
     getAppointmentsAndPatients(doctorId: string, time: string): Promise<any>
-    patientsCount(doctorId:string):Promise<any>
+    patientsCount(doctorId:string):Promise<number|any>
     markAsCompleted(appointmentId:string):Promise<any>
 }

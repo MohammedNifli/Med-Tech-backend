@@ -1,3 +1,4 @@
+import { IPatient } from "../../types/patient.types.js"
 
 
 export interface IPatientRepo{
@@ -7,6 +8,6 @@ export interface IPatientRepo{
     getMonthlyPatientDataForDash():Promise<any>
     getYearlyPatientDataForDash():Promise<any>
     getDailyPatientDataForDash():Promise<any>
-    fetchingPatientsFordash():Promise<any>
-    fetchAllPatientDetails():Promise<any>
+    fetchingPatientsFordash():Promise<IPatient[]>
+    fetchAllPatientDetails():Promise<IPatient[]>
 }

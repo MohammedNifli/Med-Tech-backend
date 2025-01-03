@@ -1,42 +1,44 @@
 import Doctor from "../models/doctorModel.js";
 import { DoctorInput } from "../models/doctorModel.js";
 import { IDoctorRepo } from "../Interfaces/doctor/IDoctorRepo.js";
-import mongoose from "mongoose";
-import { isBlock } from "typescript";
+import { IDoctor } from "../types/doctor.types.js";
+
 
 class docRepo implements IDoctorRepo {
   public async findDoc(email: string): Promise<DoctorInput | null> {
     try {
-      // Use dot notation to query nested fields
+    
       const existingDoc = await Doctor.findOne({ "personalInfo.email": email });
-      console.log("existingDoc", existingDoc);
-      return existingDoc; // Return the found doctor or null if not found
+      
+      return existingDoc; 
     } catch (error) {
-      console.error("Error finding the doctor by email:", error); // Log the error for debugging
-      throw error; // Rethrow the error to be handled by the calling code
+      console.error("Error finding the doctor by email:", error); 
+      throw error; 
     }
   }
 
-  public async createDoc(
-    doc: Partial<DoctorInput>
-  ): Promise<DoctorInput | undefined> {
+  public async createDoc(doc: Partial<DoctorInput>): Promise<DoctorInput | undefined> {
+    if (!doc) {
+      throw new Error("Invalid doctor data provided.");
+    }
+  
     try {
       const Doc = new Doctor(doc);
-      console.log("Hey kittyyyy", Doc);
       await Doc.save();
       return Doc;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error saving the document:", error);
-      throw error;
+      throw new Error("Error occurred while saving the doctor data.");
     }
   }
+  
 
   public async findDoctorById(docId: string): Promise<DoctorInput | null> {
     try {
       const doctor = await Doctor.findById(docId);
       return doctor;
     } catch (error) {
-      console.log(error);
+      
       throw error;
     }
   }
@@ -50,15 +52,15 @@ class docRepo implements IDoctorRepo {
       });
       return updatedProfile;
     } catch (error) {
-      console.log(error);
+  
       throw error;
     }
   }
 
-  //adding the doctor documents into the db and change the status into pending;
+
   public async approval(docId: string, data: Partial<DoctorInput>) {
     try {
-      // Prepare the update object with verificationStatus set to 'Pending'
+    
       const updatedData = {
         ...data,
         accountStatus: {
@@ -66,31 +68,31 @@ class docRepo implements IDoctorRepo {
         },
       };
 
-      // Update the doctor's details
+      
       const applyApproval = await Doctor.findByIdAndUpdate(
         docId,
         { $set: updatedData },
-        { new: true } // Returns the updated document
+        { new: true } 
       );
 
       if (!applyApproval) {
         throw new Error("Doctor not found or update failed");
       }
 
-      return { applyApproval }; // Return the updated doctor document
+      return { applyApproval }; 
     } catch (error: any) {
-      console.log(error);
+      
       throw error;
     }
   }
 
-  //fetching unique  specilization from doctors collection
-  public async fetchingSpecialization() {
+  
+  public async getDistinctSpecializations() {
     try {
       const uniqueSpecialization = await Doctor.distinct(
         "professionalInfo.specialization"
       );
-      console.log("unique", uniqueSpecialization);
+      
 
       return uniqueSpecialization;
     } catch (error) {
@@ -99,8 +101,7 @@ class docRepo implements IDoctorRepo {
     }
   }
 
-  //filtering
-
+  
   public async doctorsFiltering(filters: {
     consultationFee?: number;
     rating?: number;
@@ -111,7 +112,7 @@ class docRepo implements IDoctorRepo {
     try {
       const query: any = {};
 
-      // Consultation mode filter (online, offline, or both)
+      
       if (filters.consultationMode) {
         if (filters.consultationMode === "online") {
           query["practiceInfo.consultationModes.online"] = true;
@@ -132,7 +133,7 @@ class docRepo implements IDoctorRepo {
             { "practiceInfo.consultationModes.offline": true },
           ];
 
-          // Ensure both consultation fees match the filter
+    
           if (filters.consultationFee) {
             query["$or"] = [
               {
@@ -148,7 +149,7 @@ class docRepo implements IDoctorRepo {
         }
       }
 
-      // Experience filter logic
+    
       if (filters.experience !== undefined) {
         if (filters.experience === 0) {
           query["professionalInfo.experience"] = { $lt: 5 };
@@ -157,21 +158,21 @@ class docRepo implements IDoctorRepo {
         }
       }
 
-      // Rating filter
+    
       if (filters.rating) {
         query.rating = { $gte: filters.rating };
       }
 
-      // Gender filter
+    
       if (filters.gender) {
         query["personalInfo.gender"] = filters.gender;
       }
 
-      console.log("Query:", query);
+      
 
-      // Execute query and return filtered results
+      
       const filteredDoctors = await Doctor.find(query).exec();
-      console.log("Filtered Doctors:", filteredDoctors);
+      
       return filteredDoctors;
     } catch (error) {
       console.error("Error in doctorsFiltering repository:", error);
@@ -184,63 +185,69 @@ class docRepo implements IDoctorRepo {
       const fetchedDoctors = await Doctor.find();
       return fetchedDoctors;
     } catch (error: any) {
-      console.log(error);
+    
       throw new Error(error);
     }
   }
 
   public async showDoctorStatus(docId: string): Promise<any> {
     try {
-      const doctorProfile = await Doctor.findOne({ _id: docId });
-      if (!doctorProfile) {
-        console.log("Doctor profile not found");
+      if (docId) {
+        const doctorProfile = await Doctor.findOne({ _id: docId });
+        
+        if (doctorProfile) {
+          const doctorVerificationsStatus = doctorProfile.accountStatus?.verificationStatus;
+  
+          if (doctorVerificationsStatus) {
+            return doctorVerificationsStatus;
+          }
+        }
         return null;
       }
-      const doctorVerificationsStatus =
-        doctorProfile.accountStatus?.verificationStatus;
-
-      if (!doctorVerificationsStatus) {
-        console.log("Verification status not found");
-        return null;
-      }
-
-      return doctorVerificationsStatus || null; // Return null if not found
+  
+      throw new Error("Doctor ID is not provided");
     } catch (error) {
       console.log(error);
+      throw new Error("An error occurred while fetching doctor status from repository");
     }
   }
+  
 
   public async approvingStatus(docId: string): Promise<any> {
     try {
       const approvedStatus = await Doctor.findOneAndUpdate(
-        { _id: docId }, // Make sure to match by _id (or the correct field)
+        { _id: docId }, 
         {
-          $set: { "accountStatus.verificationStatus": "verified" }, // Update the verification status to 'verified'
+          $set: { "accountStatus.verificationStatus": "verified" }, 
         },
-        { new: true } // Return the updated document
+        { new: true } 
       );
 
-      return approvedStatus; // Optionally return the updated document
+      return approvedStatus; 
     } catch (error) {
-      console.error(error); // Log the error
-      throw new Error("Failed to update the approval status"); // Throw an error for handling elsewhere
+      
+      throw new Error("Failed to update the approval status");
     }
   }
 
-  public async rejectingDocProfile(docId: string): Promise<any> {
+  public async rejectingDocProfile(docId: string): Promise<IDoctor> {
     try {
       const rejectededStatus = await Doctor.findOneAndUpdate(
-        { _id: docId }, // Make sure to match by _id (or the correct field)
+        { _id: docId }, 
         {
-          $set: { "accountStatus.verificationStatus": "Rejected" }, // Update the verification status to 'verified'
+          $set: { "accountStatus.verificationStatus": "Rejected" }, 
         },
-        { new: true } // Return the updated document
+        { new: true } 
       );
+      
+    if (!rejectededStatus) {
+      throw new Error("Doctor not found or update failed");
+    }
 
-      return rejectededStatus; // Optionally return the updated document
+      return rejectededStatus; 
     } catch (error) {
-      console.error(error); // Log the error
-      throw new Error("Failed to update the approval status"); // Throw an error for handling elsewhere
+      
+      throw new Error("Failed to update the approval status"); 
     }
   }
 
@@ -254,7 +261,7 @@ class docRepo implements IDoctorRepo {
 
       return blockDoctor;
     } catch (error) {
-      console.error("Error in doctorBlock repository:", error);
+      
       throw error;
     }
   }
@@ -264,21 +271,21 @@ class docRepo implements IDoctorRepo {
         const unBlockDoctor = await Doctor.findByIdAndUpdate(
             { _id: docId },
             { $set: { isBlocked: false } },
-            { new: true }  // Return the updated document
+            { new: true }  
         );
 
         return unBlockDoctor;
     } catch (error) {
-        console.error("Error in unBlockDoctor repository:", error);
-        throw error;  // Rethrow the error to be handled by the service layer
+        
+        throw error;  
     }
 }
 
-public async adminSearchDoctorData(data: string): Promise<any> {
+public async adminSearchDoctorData(data: string): Promise<IDoctor[]> {
   try {
-      const regex = new RegExp(data, 'i'); // Case-insensitive regex
+      const regex = new RegExp(data, 'i'); 
 
-      // Create filter for nested fields in `personalInfo`
+      
       const filter = {
           $or: [
               { 'personalInfo.name': { $regex: regex } },
@@ -287,16 +294,16 @@ public async adminSearchDoctorData(data: string): Promise<any> {
           ]
       };
 
-      const doctors = await Doctor.find(filter).exec();
+      const doctors = await Doctor.find(filter).exec() as IDoctor[];
       return doctors;
   } catch (error) {
-      console.error(error);
+      
       throw new Error('Error in doctor repository');
   }
 }
 
 
-public async changePasswordRepo(docId: string, newPass: string): Promise<boolean> {
+public async changePassword(docId: string, newPass: string): Promise<boolean> {
   try {
     const updateResult = await Doctor.updateOne(
       { _id: docId },
@@ -304,19 +311,23 @@ public async changePasswordRepo(docId: string, newPass: string): Promise<boolean
     );
     return updateResult.modifiedCount > 0;
   } catch (error) {
-    console.error(error);
+  
     throw new Error("Database error while updating password");
   }
 }
 
 
-public async profilePhotoUpdating(docId: string, picPath: string): Promise<any> {
+public async updateProfileImage(docId: string, picPath: string): Promise<IDoctor> {
   try {
     const updatedProfile = await Doctor.findByIdAndUpdate(
       { _id: docId },
       { 'personalInfo.profilePicture': picPath },
-      { new: true } // Return the updated document
+      { new: true } 
     );
+
+    if (!updatedProfile) {
+      throw new Error('No doctor found with the given ID');
+    }
     return updatedProfile;
   } catch (error:any) {
     console.error(error);
@@ -325,11 +336,11 @@ public async profilePhotoUpdating(docId: string, picPath: string): Promise<any> 
 }
 
 
-public async doctorFiltering(filter: string): Promise<any> {
+public async doctorFiltering(filter: string): Promise<IDoctor[]> {
   try {
-      let query: any = {}; // Initialize an empty query object
+      let query: any = {}; 
 
-      // Construct the query based on the filter
+    
       switch (filter) {
           case 'pending':
               query['accountStatus.accountVerification'] = 'pending';
@@ -348,29 +359,29 @@ public async doctorFiltering(filter: string): Promise<any> {
               break;
           case 'all':
           default:
-              // No filter, fetch all doctors
+              
               break;
       }
 
-      // Fetch the filtered doctors from the database
+      
       const filteredDoctors = await Doctor.find(query).exec();
       return filteredDoctors;
 
   } catch (error) {
-      console.log('Error filtering doctors:', error);
-      throw error; // Rethrow the error for handling in the service layer
+     
+      throw error; 
   }
 }
 
 public async fetchTotalDoctorsCount(): Promise<number> {
   try {
-      // Query for verified doctors
+      
       const totalDoctors = await Doctor.find({ 'accountStatus.verificationStatus': 'verified' }).countDocuments();
       return totalDoctors;
   } catch (error) {
-      // Log the error for debugging
+      
       console.error('Error occurred in fetchTotalDoctorsCount repository:', error);
-      // Throw a new error with context-specific message
+    
       throw new Error('Failed to fetch total doctors count');
   }
 }
@@ -391,10 +402,10 @@ public async fetchTotalMaleDoctorsAvailable():Promise<any>{
 }
 
 
-public async fetchTotalFemaleDoctorsAvailable():Promise<any>{
+public async fetchTotalFemaleDoctorsAvailable():Promise<number>{
   try{
 
-    const data=await Doctor.find({'personalInfo.gender':"Female"}).countDocuments()
+    const data=await Doctor.find({'personalInfo.gender':"Female"}).countDocuments() 
     return data
 
     
@@ -405,10 +416,10 @@ public async fetchTotalFemaleDoctorsAvailable():Promise<any>{
   }
 }
 
-public async fetchOtherGender():Promise<any>{
+public async fetchOtherGender():Promise<number>{
   try{
     const OtherGender=await Doctor.find({'personalInfo.gender':'Other'}).countDocuments()
-    console.log("otherGender",OtherGender)
+    
     return OtherGender;
 
   }catch(error:any){
@@ -420,28 +431,28 @@ public async fetchOtherGender():Promise<any>{
 public async SearchDoctorData(
   specialization?: string,
   location?: string
-): Promise<any> {
+): Promise<IDoctor[]> {
   try {
-    // Create a dynamic query object
+    
     const matchQuery: any = {
-      'accountStatus.verificationStatus': 'verified', // Ensure only verified doctors are fetched
+      'accountStatus.verificationStatus': 'verified', 
     };
 
     if (specialization) {
       matchQuery['professionalInfo.specialization'] = {
         $regex: specialization,
-        $options: 'i', // Case-insensitive search
+        $options: 'i', 
       };
     }
 
     if (location) {
       matchQuery['personalInfo.address.city'] = {
         $regex: location,
-        $options: 'i', // Case-insensitive search
+        $options: 'i', 
       };
     }
 
-    // Construct the aggregation pipeline
+
     const pipeline = [
       { $match: matchQuery },
       {
@@ -455,34 +466,34 @@ public async SearchDoctorData(
       {
         $unwind: {
           path: '$feedback',
-          preserveNullAndEmptyArrays: true, // Include doctors without feedback
+          preserveNullAndEmptyArrays: true, 
         },
       },
       {
         $group: {
-          _id: '$_id', // Group by doctor ID
-          doctor: { $first: '$$ROOT' }, // Retain all doctor fields
-          averageRating: { $avg: '$feedback.rating' }, // Calculate average rating
+          _id: '$_id', 
+          doctor: { $first: '$$ROOT' }, 
+          averageRating: { $avg: '$feedback.rating' }, 
         },
       },
       {
         $addFields: {
-          'doctor.averageRating': { $ifNull: ['$averageRating', 0] }, // Add averageRating to doctor, default to 0
+          'doctor.averageRating': { $ifNull: ['$averageRating', 0] }, 
         },
       },
       {
         $replaceRoot: {
-          newRoot: '$doctor', // Flatten the structure
+          newRoot: '$doctor', 
         },
       },
     ];
 
-    // Execute the query
+    
     const doctors = await Doctor.aggregate(pipeline);
 
     return doctors;
   } catch (error: any) {
-    console.error('Error in SearchDoctorData:', error.message || error);
+    
     throw new Error('Error occurred in the SearchDoctorData repository');
   }
 }

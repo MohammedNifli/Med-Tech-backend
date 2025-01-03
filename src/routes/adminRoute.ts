@@ -42,10 +42,7 @@ adminRoute.patch(
   "/user-block/:id",
   adminController.blockUserController.bind(adminController)
 );
-// adminRoute.patch(
-//   "/user-unblock/:id",
-//   adminController.unBlockUser.bind(adminController)
-// );
+
 
 adminRoute.patch('/user-unblock/:id',adminController.unBlockUser.bind(adminController))
 adminRoute.post('/doctor-block/:id',adminController.blockDoctor.bind(adminController))

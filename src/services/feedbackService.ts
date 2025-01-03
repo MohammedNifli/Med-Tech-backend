@@ -1,9 +1,10 @@
-import { ifeedbackRepository } from "../Interfaces/feedback/IfeedbackRepo.js";
+import { IfeedbackRepository } from "../Interfaces/feedback/IfeedbackRepo.js";
 import { FeedbackType } from "../models/feedbackModel.js";
+import { IfeedbackService } from "../Interfaces/feedback/IfeedbackService.js";
 
-class FeedbackService{
-    private feedbackRepository:ifeedbackRepository;
-    constructor(feedbackRepository:ifeedbackRepository){
+class FeedbackService implements IfeedbackService{
+    private feedbackRepository:IfeedbackRepository;
+    constructor(feedbackRepository:IfeedbackRepository){
         this.feedbackRepository=feedbackRepository
     }
 
@@ -24,10 +25,7 @@ class FeedbackService{
         try {
             const fetchedData = await this.feedbackRepository.fetchingFeedbackAndRating(userId,doctorId,patientId);
     
-            if (!fetchedData) {
-               
-                return undefined; // Optional: return null or handle this differently if needed
-            }
+            if (!fetchedData) return undefined; 
     
             return fetchedData;
     
