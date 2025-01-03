@@ -64,22 +64,22 @@ const io=new Server(server,{
 
 
 
-// Use cookie-parser middleware to parse cookies from the request
+
 app.use(cookieParser());
 
-// CORS options for allowing cookies and specifying allowed origins
+
 const corsOptions = {
-  origin: "med-tech-connect.vercel.app", 
+  origin: "https://med-tech-connect.vercel.app", 
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], 
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
 
-// Use CORS middleware
+
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); 
 
-// Middleware for parsing JSON and URL-encoded data
+
 app.use("/appointment/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -118,21 +118,21 @@ app.get("/log", (req: Request, res: Response) => {
 let users: { [key: string]: string } = {};
 
 io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
 
-  // Register user on connection
+
+  
   socket.on('register', (userId) => {
-    users[userId] = socket.id; // Map userId to socket.id
+    users[userId] = socket.id; 
     console.log(`User ${userId} registered with socket ID: ${socket.id}`);
   });
 
-  // Join a specific chat room
+  
   socket.on('join_chat', (room) => {
     socket.join(room);
     console.log(`User joined room: ${room}`);
   });
 
-  // Handle new message and deliver to recipient
+  
   socket.on('send_message', ({ senderId, recipientId, content }) => {
     const recipientSocketId = users[recipientId];
     if (recipientSocketId) {
