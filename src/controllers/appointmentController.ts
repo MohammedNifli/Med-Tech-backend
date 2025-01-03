@@ -96,7 +96,7 @@ class AppointmentController implements IAppointmentController {
 
       return res
         .status(HttpStatusCode.CREATED)
-        .json({ message: result.message, appointment: result.appointment });
+        .json({ message: result.message, appointment: result.appointment,result });
     } catch (error: any) {
       if (error.message === "This time slot is already booked.") {
         return res
