@@ -46,14 +46,13 @@ docRoute.put('/approval/:id', checkRole([Roles.DOCTOR]), checkBlocked, upload.fi
 
 docRoute.post('/picture',checkRole([Roles.DOCTOR]),upload.single('photo'),docController.doctorProfilePictureFixing.bind(docController))
 
-// Time Slot Management
+
 docRoute.post('/slot', checkBlocked, timeSlotController.addTimeSlots.bind(timeSlotController));
 
-// Logout
 docRoute.post('/logout', checkRole([Roles.DOCTOR]), checkBlocked, docController.doctorLogout.bind(docController));
 
-// Status route
-docRoute.get('/status/:id', checkRole([Roles.DOCTOR]), checkBlocked, docController.fetchDoctorStatus.bind(docController));
+
+docRoute.get('/status/:id', checkBlocked, docController.fetchDoctorStatus.bind(docController));
 
 docRoute.get('/slots',checkRole([Roles.DOCTOR]), checkBlocked,timeSlotController.fetchSlots.bind(timeSlotController))
 
