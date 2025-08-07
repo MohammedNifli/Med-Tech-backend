@@ -24,6 +24,7 @@ class AppointmentController {
     async createAppointment(req, res) {
         const { appointmentData } = req.body;
         const { userId, doctorId, appointmentDate, timeSlot, consultationMode, amount, videoCall, } = appointmentData;
+        console.log('appointmentDate------------->', appointmentDate);
         if (!userId ||
             !doctorId ||
             !appointmentDate ||

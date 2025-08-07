@@ -7,6 +7,19 @@ interface Medicine {
   timing: string;
 }
 
+
+export interface Prescription{
+  appointmentId: mongoose.Types.ObjectId;
+  patientId: mongoose.Types.ObjectId;
+  userId:mongoose.Types.ObjectId;
+  diagnosis: string;
+  medicines: Medicine[];
+  followUpDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+
+}
+
 // Define the Prescription interface extending Mongoose's Document
 export interface PrescriptionDocument extends Document {
   appointmentId: mongoose.Types.ObjectId;

@@ -15,7 +15,6 @@ import { upload } from '../middlewares/uploadMiddleware.js';
 import checkBlocked from '../middlewares/checkBlocked.js';
 import TimeSlotController from '../controllers/timeSlotController.js';
 const router = Router();
-// Instantiate the repository and service
 const userRepository = new UserRepo();
 const userService = new UserService(userRepository);
 const docRepo = new DocRepo();

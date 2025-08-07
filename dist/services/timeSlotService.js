@@ -62,18 +62,33 @@ class TimeSlotService {
     }
     async checkSlotExistancy(doctorId, startDate, endDate, timeSlots) {
         try {
-            if (!doctorId) {
-                throw new Error("Please provide the doctor ID.");
-            }
-            if (!Array.isArray(timeSlots) || timeSlots.length === 0) {
-                throw new Error("Time slots array is empty or invalid.");
-            }
-            const existingSlots = await this.timeSlotRepo.checkSlotExistancyRepo(doctorId, startDate, endDate, timeSlots);
+            // Normalize time slots to 24-hour format
+            const normalizedTimeSlots = timeSlots.map((slot) => {
+                const match = slot.match(/(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
+                if (!match) {
+                    throw new Error(`Invalid time format: ${slot}. Expected format: HH:mm.`);
+                }
+                let [_, hours, minutes, period] = match;
+                let normalizedHours = parseInt(hours, 10);
+                if (period) {
+                    period = period.toUpperCase();
+                    if (period === "PM" && normalizedHours < 12) {
+                        normalizedHours += 12;
+                    }
+                    else if (period === "AM" && normalizedHours === 12) {
+                        normalizedHours = 0;
+                    }
+                }
+                return `${String(normalizedHours).padStart(2, "0")}:${minutes}`;
+            });
+            console.log("Normalized Time Slots:", normalizedTimeSlots);
+            // Check slot existence in the repository
+            const existingSlots = await this.timeSlotRepo.checkSlotExistancyRepo(doctorId, startDate, endDate, normalizedTimeSlots);
             return existingSlots.length > 0;
         }
         catch (error) {
-            console.error("Error checking slot existence:", error);
-            throw error;
+            console.error("Error checking slot existence:", error.message);
+            throw new Error("Failed to check slot existence.");
         }
     }
     async fetchDoctorAllSlots(doctorId, date) {

@@ -52,7 +52,6 @@ function generateTimeSlots(startDate, endDate, timeSlots, doctorId, availableDay
                     console.error('Invalid end time:', slotEndTime);
                     continue; // Skip this iteration if the time is invalid
                 }
-                // Use dayOfWeek to check availability correctly
                 const status = availableDays.includes(dayOfWeek) ? 'available' : 'not available';
                 // Push the slot with the correct status
                 slots.push({

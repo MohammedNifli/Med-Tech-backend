@@ -26,14 +26,13 @@ docRoute.use(authentication); // Apply authentication middleware to all routes b
 // Doctor Profile routes
 docRoute.get('/profile', checkBlocked, docController.getProfile.bind(docController));
 docRoute.put('/profile', checkRole([Roles.DOCTOR]), checkBlocked, docController.editProfile.bind(docController));
-// Doctor Approval - File Uploads (use the `upload` middleware)
 docRoute.put('/approval/:id', checkRole([Roles.DOCTOR]), checkBlocked, upload.fields([
     { name: 'certificates', maxCount: 10 },
     { name: 'licenses', maxCount: 10 }
 ]), docController.applyForApproval.bind(docController));
 docRoute.post('/picture', checkRole([Roles.DOCTOR]), upload.single('photo'), docController.doctorProfilePictureFixing.bind(docController));
 docRoute.post('/slot', checkBlocked, timeSlotController.addTimeSlots.bind(timeSlotController));
-docRoute.post('/logout', checkRole([Roles.DOCTOR]), checkBlocked, docController.doctorLogout.bind(docController));
+docRoute.post('/logout', checkBlocked, docController.doctorLogout.bind(docController));
 docRoute.get('/status/:id', checkBlocked, docController.fetchDoctorStatus.bind(docController));
 docRoute.get('/slots', checkRole([Roles.DOCTOR]), checkBlocked, timeSlotController.fetchSlots.bind(timeSlotController));
 docRoute.delete('/slot', checkRole([Roles.DOCTOR]), checkBlocked, timeSlotController.deleteTimeSlot.bind(timeSlotController));

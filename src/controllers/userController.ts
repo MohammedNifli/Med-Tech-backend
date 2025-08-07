@@ -343,7 +343,7 @@ class userController implements IUserController {
      
       const { userId, currentPassword, newPassword, confirmPassword } =
         req.body;
-
+ 
       const message = await this.userService.changePassword(
         userId,
         currentPassword,
@@ -383,7 +383,7 @@ class userController implements IUserController {
     }
   }
 
-  public async fetchDoctorOnlineSlots(
+  public async  fetchDoctorOnlineSlots(
     req: Request,
     res: Response
   ): Promise<Response> {

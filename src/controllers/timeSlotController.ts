@@ -22,6 +22,7 @@ class TimeSlotController implements ITimeSlotController {
     } = req.body;
 
     try {
+      // Validate input
       if (
         !doctorId ||
         !startDate ||
@@ -43,11 +44,13 @@ class TimeSlotController implements ITimeSlotController {
           .json({ message: "Invalid date format" });
       }
 
+   
       const existingSlots = await this.timeSlotService.checkSlotExistancy(
         doctorId,
         start,
         end,
-        timeSlots
+        timeSlots,
+        
       );
       if (existingSlots) {
         return res
@@ -55,12 +58,7 @@ class TimeSlotController implements ITimeSlotController {
           .json({ message: "Some of the requested time slots already exist" });
       }
 
-      if (existingSlots) {
-        return res
-          .status(HttpStatusCode.CONFLICT)
-          .json({ message: "Time slots already exist for the doctor" });
-      }
-
+     
       const addedSlots = await this.timeSlotService.generateAndAddSlots({
         doctorId,
         startDate: start,
@@ -74,7 +72,7 @@ class TimeSlotController implements ITimeSlotController {
         .status(HttpStatusCode.CREATED)
         .json({ message: "Slots added successfully", slots: addedSlots });
     } catch (error: any) {
-      console.error("Error adding time slots:", error);
+    
       return res
         .status(HttpStatusCode.INTERNAL_SERVER_ERROR)
         .json({ message: "Error adding time slots", error: error.message });

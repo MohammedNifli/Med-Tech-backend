@@ -3,6 +3,7 @@ import { TimeSlot, ITimeSlot, ITimeSlotDetails } from "../models/slotModel.js";
 import { ITimeRepo } from "../Interfaces/timeSlot/ITimeRepo.js";
 import moment from "moment";
 import "moment-timezone";
+import { time } from "node:console";
 
 class timeSlotRepo implements ITimeRepo {
   public async batchInsertTimeSlots(
@@ -133,27 +134,52 @@ class timeSlotRepo implements ITimeRepo {
     startDate: Date,
     endDate: Date,
     timeSlots: string[]
-  ): Promise<ITimeSlot[]> {
-    const timeRanges = timeSlots.map((time) => {
-      const [hours, minutes] = time.split(":");
-      const start = new Date(startDate);
-      start.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-      const end = new Date(start);
-      end.setHours(start.getHours() + 1);
-      return { start, end };
-    });
+  ): Promise<any[]> {
+    try {
+      // Convert each time slot into UTC time ranges
+      const timeRanges = timeSlots.map((time) => {
+        const [hours, minutes] = time.split(":").map(Number);
+        
+        // Generate start and end times in UTC
+        const localStart = new Date(startDate);
+        localStart.setHours(hours, minutes, 0, 0);
+        const utcStart = new Date(localStart.getTime() - localStart.getTimezoneOffset() * 60000);
+        
+        const utcEnd = new Date(utcStart);
+        utcEnd.setMinutes(utcEnd.getMinutes() + 30); // Assuming 30-minute slots
+        
+        return { 
+          hours,
+          minutes,
+          utcStart,
+          utcEnd
+        };
+      });
 
-    return TimeSlot.find({
-      doctor: doctorId,
-      "slots.startDateTime": {
-        $gte: startDate,
-        $lte: endDate,
-      },
-      $or: timeRanges.map((range) => ({
-        "slots.startDateTime": { $gte: range.start, $lt: range.end },
-      })),
-    });
+      // Query MongoDB for exactly matching time slots
+      const existingSlots = await TimeSlot.find({
+        doctor: doctorId,
+        slots: {
+          $elemMatch: {
+            startDateTime: {
+              $in: timeRanges.map(range => {
+                const date = new Date(startDate);
+                date.setHours(range.hours, range.minutes, 0, 0);
+                return date;
+              })
+            }
+          }
+        }
+      }).exec();
+
+      return existingSlots;
+    } catch (error: any) {
+      console.error("Error querying existing slots:", error.message);
+      throw new Error("Database query for slot existence failed.");
+    }
   }
+  
+  
 
   public async fetchDoctorAllSlots(
     doctorId: string,

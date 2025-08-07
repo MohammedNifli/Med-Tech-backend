@@ -9,6 +9,7 @@ class TimeSlotController {
     async addTimeSlots(req, res) {
         const { doctorId, startDate, endDate, timeSlots, availableDays, consultationMode, } = req.body;
         try {
+            // Validate input
             if (!doctorId ||
                 !startDate ||
                 !endDate ||
@@ -32,11 +33,6 @@ class TimeSlotController {
                     .status(HttpStatusCode.CONFLICT)
                     .json({ message: "Some of the requested time slots already exist" });
             }
-            if (existingSlots) {
-                return res
-                    .status(HttpStatusCode.CONFLICT)
-                    .json({ message: "Time slots already exist for the doctor" });
-            }
             const addedSlots = await this.timeSlotService.generateAndAddSlots({
                 doctorId,
                 startDate: start,
@@ -50,7 +46,6 @@ class TimeSlotController {
                 .json({ message: "Slots added successfully", slots: addedSlots });
         }
         catch (error) {
-            console.error("Error adding time slots:", error);
             return res
                 .status(HttpStatusCode.INTERNAL_SERVER_ERROR)
                 .json({ message: "Error adding time slots", error: error.message });

@@ -1,3 +1,4 @@
+import { promises } from "node:dns";
 import { IPrescriptionRepo } from "../Interfaces/prescription/IPrescriptionRepo.js";
 import PrescriptionModel, {
   PrescriptionDocument,
@@ -23,6 +24,24 @@ class PrescriptionRepository implements IPrescriptionRepo {
       return prescription || null;
     } catch (error: any) {
       throw new Error(`Error in Repository Layer: ${error.message}`);
+    }
+  }
+
+
+  public async findById(prescriptionId: string): Promise<PrescriptionDocument | null> {
+    try {
+      return await PrescriptionModel.findById(prescriptionId);
+    } catch (error: any) {
+      throw new Error(`Error finding prescription: ${error.message}`);
+    }
+  }
+
+
+  public async editPrescription(prescription: PrescriptionDocument): Promise<PrescriptionDocument> {
+    try {
+      return await prescription.save();
+    } catch (error: any) {
+      throw new Error(`Error saving prescription: ${error.message}`);
     }
   }
   

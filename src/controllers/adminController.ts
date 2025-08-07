@@ -43,6 +43,7 @@ class AdminController implements IAdminController {
   public async login(req: Request, res: Response): Promise<Response> {
     try {
       const { email, password } = req.body;
+      console.log("Login request received with email admin:", password);
 
       if (!email || !password) {
         return res

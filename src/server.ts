@@ -18,19 +18,13 @@ import chatRoute from "./routes/chatRoute.js";
 import messageRoute from "./routes/messageRoute.js";
 import docWalletRoute from "./routes/doctorWalletRoute.js";
 import prescriptionRoute from "./routes/prescriptionRoute.js";
-import logger from './utils/logger.js'
+import logger from "./utils/logger.js";
 import morgan from "morgan";
 
-
-import { Server } from 'socket.io';
-import {createServer} from 'http'
-
-
-
-
+import { Server } from "socket.io";
+import { createServer } from "http";
 
 dotenv.config();
-
 
 connectDB();
 
@@ -54,31 +48,23 @@ app.use(
 );
 
 const server = createServer(app);
-const io=new Server(server,{
-  cors:{
-    origin:"*"
-  }
-})
-
-
-
-
-
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+  },
+});
 
 app.use(cookieParser());
 
-
 const corsOptions = {
-  origin: "https://med-tech-connect.vercel.app/", 
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], 
+  origin: "http://localhost:5173",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
 
-
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); 
-
+app.options("*", cors(corsOptions));
 
 app.use("/appointment/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
@@ -97,57 +83,44 @@ app.use("/wallet", walletRoute);
 app.use("/payment", paymentRoute);
 app.use("/chat", chatRoute);
 app.use("/message", messageRoute);
-app.use('/doc-wallet',docWalletRoute);
-app.use('/prescription',prescriptionRoute)
+app.use("/doc-wallet", docWalletRoute);
+app.use("/prescription", prescriptionRoute);
 
-
-// Default route for testing
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello World");
 });
 
-// Sample login route for testing
 app.get("/log", (req: Request, res: Response) => {
   res.send("Login please");
 });
 
-
-
-
-
 let users: { [key: string]: string } = {};
 
-io.on('connection', (socket) => {
-
-
-  
-  socket.on('register', (userId) => {
-    users[userId] = socket.id; 
+io.on("connection", (socket) => {
+  socket.on("register", (userId) => {
+    users[userId] = socket.id;
     console.log(`User ${userId} registered with socket ID: ${socket.id}`);
   });
 
-  
-  socket.on('join_chat', (room) => {
+  socket.on("join_chat", (room) => {
     socket.join(room);
     console.log(`User joined room: ${room}`);
   });
 
-  
-  socket.on('send_message', ({ senderId, recipientId, content }) => {
+  socket.on("send_message", ({ senderId, recipientId, content }) => {
     const recipientSocketId = users[recipientId];
     if (recipientSocketId) {
-      io.to(recipientSocketId).emit('message_received', {
+      io.to(recipientSocketId).emit("message_received", {
         senderId,
         content,
         timestamp: new Date(),
       });
     } else {
-      console.log('Recipient not connected');
+      console.log("Recipient not connected");
     }
   });
 
-  // Cleanup on disconnect
-  socket.on('disconnect', () => {
+  socket.on("disconnect", () => {
     for (const [userId, socketId] of Object.entries(users)) {
       if (socketId === socket.id) {
         delete users[userId];
@@ -158,15 +131,7 @@ io.on('connection', (socket) => {
   });
 });
 
-
-
-
-
-
-// Start the server
 const port = process.env.PORT || 3000;
 server.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
-
-

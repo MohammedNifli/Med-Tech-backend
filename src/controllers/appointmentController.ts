@@ -60,6 +60,7 @@ class AppointmentController implements IAppointmentController {
       amount,
       videoCall,
     } = appointmentData;
+    console.log('appointmentDate------------->',appointmentDate)
 
     if (
       !userId ||
@@ -153,7 +154,9 @@ class AppointmentController implements IAppointmentController {
   }
 
   public async webHook(req: Request, res: Response): Promise<void> {
+   
     const sig = req.headers["stripe-signature"] as string;
+
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     if (!endpointSecret) {
@@ -176,9 +179,9 @@ class AppointmentController implements IAppointmentController {
       res
         .status(HttpStatusCode.BAD_REQUEST)
         .send(`Webhook Error: ${(err as Error).message}`);
+       
       return;
     }
-
     if (event.type === "payment_intent.succeeded") {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
       const appointmentId = paymentIntent.metadata?.appointmentId;
@@ -189,6 +192,7 @@ class AppointmentController implements IAppointmentController {
         try {
           const status = "completed";
           const pisa = Number(amount);
+          
 
           await this.appointmentService.paymentSucceed(appointmentId);
 

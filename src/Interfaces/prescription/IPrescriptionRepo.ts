@@ -7,5 +7,7 @@ export interface IPrescriptionRepo{
     getPrescriptionRepository(
         appointmentId: string
       ): Promise<PrescriptionDocument | null> 
+      editPrescription(prescription:PrescriptionDocument):Promise<PrescriptionDocument | null>
+      findById(prescriptionId:string):Promise<PrescriptionDocument | null>
 
 }
