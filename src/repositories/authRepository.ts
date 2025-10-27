@@ -14,7 +14,9 @@ class AuthRepository {
   public async removeToken(token: string): Promise<void> {
     try {
       // Delete the refresh token from the database
-      await RefreshToken.findOneAndDelete({ token });
+      if(token) await RefreshToken.findOneAndDelete({ token });
+     
+      
     } catch (error) {
       console.error('Error removing token from database:', error);
       throw new Error('Failed to remove token from database');
